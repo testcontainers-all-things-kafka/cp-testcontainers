@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+}
+
+apply plugin: 'maven'
+
+group 'net.christophschubert'
+version '0.1.0-SNAPSHOT'
+
+sourceCompatibility = 1.11
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url 'https://packages.confluent.io/maven'
+    }
+}
+
+sourceSets {
+    intTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    intTestImplementation.extendsFrom implementation
+    intTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+task integrationTest(type: Test) {
+    description = "Runs integration tests"
+    group = 'verification'
+
+    testClassesDirs = sourceSets.intTest.output.classesDirs
+    classpath = sourceSets.intTest.runtimeClasspath
+    shouldRunAfter test
+}
+
+check.dependsOn integrationTest
+
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
+    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.6.0'
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.6.0'
+
+    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '6.0.0'
+
+    compile "org.testcontainers:testcontainers:1.15.1"
+    compile "org.testcontainers:kafka:1.15.1"
+
+    // for localstack/S3 connector integration test
+    intTestImplementation "org.testcontainers:localstack:1.15.1"
+    intTestImplementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.926'
+    intTestImplementation group: 'software.amazon.awssdk', name: 's3', version: '2.15.53'
+
+
+    intTestImplementation "org.testcontainers:junit-jupiter:1.15.1"
+}
+
+test {
+    useJUnitPlatform()
+}
