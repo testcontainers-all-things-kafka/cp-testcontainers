@@ -29,9 +29,11 @@ public class CustomConnectorTest {
         connect.start();
 
         final var topicName = "datagen";
+        final int numMessages = 100;
         final var dataGenConfig = ConnectorConfig.source("datagen", "io.confluent.kafka.connect.datagen.DatagenConnector")
                 .with("kafka.topic", topicName)
                 .with("quickstart", "inventory")
+                .with("instances", numMessages)
                 .with("value.converter.schemas.enable", "false");
 
         final ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
@@ -47,9 +49,11 @@ public class CustomConnectorTest {
         final Consumer<String, String> consumer = new KafkaConsumer<>(consumerProperties);
         consumer.subscribe(List.of(topicName));
 
-        while(true) {
+        var numConsumed = 0;
+        while(numConsumed < numMessages) {
             for (ConsumerRecord<String, String> record : consumer.poll(Duration.ofMillis(500))) {
                 System.out.println(record.value());
+                ++numConsumed;
             }
         }
     }

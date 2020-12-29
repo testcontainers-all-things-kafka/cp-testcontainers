@@ -56,9 +56,10 @@ public class CPTestContainerFactory {
         return new KafkaConnectContainer(image, bootstrap, network).withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
     }
 
+    public RestProxyContainer createRestProxy(KafkaContainer bootstrap) {
+        return new RestProxyContainer(imageName("cp-kafka-rest"), bootstrap, network);
+    }
+
     // TODO: add ksqlDB container
 
-    // TODO: add REST proxy container
-
-    // TODO: move to separate project
 }

@@ -13,7 +13,8 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
 
         withEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost");
         withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
-        withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:" + defaultPort).withExposedPorts(defaultPort);
+        withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:" + defaultPort);
+        withExposedPorts(defaultPort);
     }
 
     public String getBaseUrl() {
