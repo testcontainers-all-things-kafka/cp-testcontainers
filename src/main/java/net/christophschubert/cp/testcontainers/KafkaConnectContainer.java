@@ -12,19 +12,19 @@ import java.util.stream.Collectors;
 
 public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer> {
 
-    final int defaultPort = 8083;
+    static final int defaultPort = 8083;
 
-    void _configure(KafkaContainer bootstrap) {
+    private void _configure(KafkaContainer bootstrap) {
         withStartupTimeout(Duration.ofMinutes(5));
-        waitingFor(Wait.forHttp("/"));
+        waitingFor(Wait.forHttp("/connectors"));
         withEnv("CONNECT_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
-        withEnv("CONNECT_REST_PORT", "" + defaultPort);
+        withEnv("CONNECT_REST_PORT", "" + httpPort);
         withEnv("CONNECT_GROUP_ID", "connect");
         withEnv("CONNECT_REPLICATION_FACTOR", "1");
         withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost"); //changed this from example
         withEnv("CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY", "All");
         withEnv("CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR", "1");
-        withEnv("CONNECT_LISTENERS", "http://0.0.0.0:" + defaultPort);
+        withEnv("CONNECT_LISTENERS", httpPortListener());
         withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "INFO");
         withEnv("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1");
         withEnv("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1");
@@ -35,17 +35,16 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         withEnv("CONNECT_PLUGIN_PATH", "/usr/share/java");
         withEnv("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
         withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
-        withExposedPorts(defaultPort);
     }
 
     KafkaConnectContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network) {
-        super(dockerImageName, bootstrap, network);
+        super(dockerImageName, bootstrap, network, defaultPort);
         _configure(bootstrap);
 
     }
 
     protected KafkaConnectContainer(ImageFromDockerfile image, KafkaContainer bootstrap, Network network){
-        super(image, bootstrap, network);
+        super(image, bootstrap, network, defaultPort);
         _configure(bootstrap);
     }
 
@@ -60,8 +59,4 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         );
     }
 
-    public String getBaseUrl() {
-       return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(defaultPort));
-
-    }
 }
