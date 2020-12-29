@@ -60,6 +60,8 @@ public class CPTestContainerFactory {
         return new RestProxyContainer(imageName("cp-kafka-rest"), bootstrap, network);
     }
 
-    // TODO: add ksqlDB container
+    public KsqlDBContainer createKsqlDB(KafkaContainer bootstrap) {
+        return new KsqlDBContainer(imageName("cp-ksqldb-server"), bootstrap, network);
+    }
 
 }
