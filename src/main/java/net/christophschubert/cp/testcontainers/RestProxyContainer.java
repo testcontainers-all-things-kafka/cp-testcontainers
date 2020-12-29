@@ -13,7 +13,7 @@ public class RestProxyContainer extends CPTestContainer<RestProxyContainer> {
 
         withEnv("KAFKA_REST_HOST_NAME", "restproxy");
         withEnv("KAFKA_REST_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
-        withEnv("KAFKA_REST_LISTENERS", httpPortListener());
+        withEnv("KAFKA_REST_LISTENERS", getHttpPortListener());
     }
 
 }

@@ -7,7 +7,7 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- *
+ * Base class for the Confluent platform components exposing a (REST) HTTP port.
  */
 abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> extends GenericContainer<SELF> {
     public static String getInternalBootstrap(KafkaContainer bootstrap) {
@@ -36,7 +36,7 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
         return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(httpPort));
     }
 
-    public String httpPortListener() {
+    public String getHttpPortListener() {
         return "http://0.0.0.0:" + httpPort;
     }
 

@@ -7,7 +7,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Minimal implementation, see https://github.com/christophschubert/kafka-connect-java-client for a
+/**
+ * Minimal implementation, see https://github.com/christophschubert/kafka-connect-java-client for a
  * more complete implementation.
  */
 public class ConnectorConfig {
@@ -32,10 +33,6 @@ public class ConnectorConfig {
         return sink(name, connectorClassName); //stub implementation
     }
 
-    public ConnectorConfig withTasksMax(int tasksMax) {
-        config.put(TASKS_MAX_CONFIG, tasksMax);
-        return this;
-    }
 
     public ConnectorConfig withTopics(Collection<String> topicNames) {
         config.put(TOPICS_CONFIG, String.join(",", topicNames));

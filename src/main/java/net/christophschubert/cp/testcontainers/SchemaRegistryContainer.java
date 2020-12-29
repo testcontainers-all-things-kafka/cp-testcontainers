@@ -13,7 +13,7 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
 
         withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry");
         withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
-        withEnv("SCHEMA_REGISTRY_LISTENERS", httpPortListener());
+        withEnv("SCHEMA_REGISTRY_LISTENERS", getHttpPortListener());
     }
 
 }

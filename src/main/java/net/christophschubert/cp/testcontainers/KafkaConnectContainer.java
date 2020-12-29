@@ -24,7 +24,7 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost"); //changed this from example
         withEnv("CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY", "All");
         withEnv("CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR", "1");
-        withEnv("CONNECT_LISTENERS", httpPortListener());
+        withEnv("CONNECT_LISTENERS", getHttpPortListener());
         withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "INFO");
         withEnv("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1");
         withEnv("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1");
