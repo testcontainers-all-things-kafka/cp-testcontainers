@@ -58,8 +58,26 @@ public class CPTestContainerFactory {
         return new RestProxyContainer(imageName("cp-kafka-rest"), bootstrap, network);
     }
 
+    /**
+     * Creates a ksqlDB server instance using the version bundled with the specified version of Confluent Platform.
+     *
+     * @param bootstrap Kafka container to use as bootstrap server
+     * @return a ksqlDB container
+     */
     public KsqlDBContainer createKsqlDB(KafkaContainer bootstrap) {
         return new KsqlDBContainer(imageName("cp-ksqldb-server"), bootstrap, network);
+    }
+
+    /**
+     * Creates a ksqlDB server container using a independently released ksqlDB image version.
+     *
+     * @param bootstrap Kafka container to use as bootstrap server
+     * @param tag the version number of the ksqlDB server image to use(e.g. 0.14.0 or latest)
+     * @return a ksqlDB container
+     */
+    public KsqlDBContainer createKsqDB(KafkaContainer bootstrap, String tag) {
+        final var imageName = DockerImageName.parse(String.format("%s/ksqldb-server:%s", repository, tag));
+        return new KsqlDBContainer(imageName, bootstrap, network);
     }
 
 }
