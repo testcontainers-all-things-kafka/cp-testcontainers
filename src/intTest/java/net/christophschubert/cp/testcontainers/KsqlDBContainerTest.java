@@ -68,7 +68,7 @@ public class KsqlDBContainerTest {
 
 
     @Test
-    public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws URISyntaxException, IOException, InterruptedException {
+    public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws IOException, InterruptedException {
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
         final var kafka = containerFactory.createKafka();
@@ -114,7 +114,7 @@ public class KsqlDBContainerTest {
         final Consumer<String, GenericRecord> consumer = new KafkaConsumer<>(consumerProperties);
         consumer.subscribe(List.of("users_avro"));
 
-        var msgs = ConsumerLoop.loopUntil(consumer, 5);
-        Assert.assertEquals(5, msgs.size());
+        var messages = ConsumerLoop.loopUntil(consumer, 5);
+        Assert.assertEquals(5, messages.size());
     }
 }
