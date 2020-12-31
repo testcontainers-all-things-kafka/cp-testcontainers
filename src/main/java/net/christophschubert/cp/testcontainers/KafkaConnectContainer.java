@@ -48,6 +48,13 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         _configure(bootstrap);
     }
 
+    /**
+     * Create a custom Docker image by installing the provided connectors from Confluent Hub.
+     *
+     * @param connectorNames names of the connectors to install
+     * @param baseImageName base image name
+     * @return a Docker image with the connectors installed
+     */
     public static ImageFromDockerfile customImage(Set<String> connectorNames, String baseImageName) {
         final var commandPrefix = "confluent-hub install --no-prompt ";
         final String command = connectorNames.stream().map(s -> commandPrefix + s).collect(Collectors.joining(" && "));

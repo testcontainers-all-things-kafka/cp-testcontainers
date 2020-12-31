@@ -16,4 +16,10 @@ public class RestProxyContainer extends CPTestContainer<RestProxyContainer> {
         withEnv("KAFKA_REST_LISTENERS", getHttpPortListener());
     }
 
+    public RestProxyContainer withSchemaRegistry(SchemaRegistryContainer schemaRegistry) {
+        withEnv("KAFKA_REST_SCHEMA_REGISTRY_URL", schemaRegistry.getInternalBaseUrl());
+        dependsOn(schemaRegistry);
+        return this;
+    }
+
 }
