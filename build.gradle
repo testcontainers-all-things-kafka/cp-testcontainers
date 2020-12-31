@@ -53,6 +53,9 @@ dependencies {
     compile "org.testcontainers:testcontainers:1.15.1"
     compile "org.testcontainers:kafka:1.15.1"
 
+    compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.29'
+
+
     // for localstack/S3 connector integration test
     intTestImplementation "org.testcontainers:localstack:1.15.1"
     intTestImplementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.926'

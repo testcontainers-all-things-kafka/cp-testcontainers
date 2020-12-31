@@ -96,4 +96,74 @@ public class ReplicatorConnectorTest {
         Assert.assertEquals(1, msgCount);
     }
 
+    // quick test for configuring connectors
+    @Test
+    public void setupReplicatorForJson() throws InterruptedException, IOException, ExecutionException {
+        final Network network = Network.newNetwork();
+        final var testContainerFactory = new CPTestContainerFactory(network);
+
+        final KafkaContainer sourceKafka = testContainerFactory.createKafka();
+        final KafkaContainer destinationKafka = testContainerFactory.createKafka();
+        sourceKafka.start();
+        destinationKafka.start();
+
+        final LogWaiter waiter = new LogWaiter("INFO Successfully started up Replicator source task");
+
+        final KafkaConnectContainer replicatorContainer = testContainerFactory.createReplicator(destinationKafka);
+        replicatorContainer.withLogConsumer(outputFrame -> waiter.accept(outputFrame.getUtf8String()));
+        replicatorContainer.start();
+
+        //pre-create topics:
+        final AdminClient adminClient = KafkaAdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, sourceKafka.getBootstrapServers()));
+        adminClient.createTopics(List.of(new NewTopic("data.topic", Optional.empty(), Optional.empty()))).all().get();
+
+        final var replicatorConfig = ConnectorConfig.source("replicator-data", "io.confluent.connect.replicator.ReplicatorSourceConnector")
+                .withTopicRegex("data\\..*")
+                .with("topic.rename.format", "${topic}.replica")
+                .with("src.value.converter", "org.apache.kafka.connect.json.JsonConverter")
+                .with("src.value.converter.schemas.enable", false)
+                .with("value.converter", "org.apache.kafka.connect.json.JsonConverter") // need to write this in this test case even though it's the default in Connect cluster in order for
+                .with("value.converter.schemas.enable", false)
+                .with("src.kafka.bootstrap.servers", CPTestContainer.getInternalBootstrap(sourceKafka));
+
+        final ConnectClient connectClient = new ConnectClient(replicatorContainer.getBaseUrl());
+        connectClient.startConnector(replicatorConfig);
+
+        final var producerProperties = new Properties();
+        producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, sourceKafka.getBootstrapServers());
+        producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+        final Producer<String, String> producer = new KafkaProducer<>(producerProperties);
+
+        final var consumerProperties = new Properties();
+        consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, destinationKafka.getBootstrapServers());
+        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
+        consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        final Consumer<String, String> consumer = new KafkaConsumer<>(consumerProperties);
+        consumer.subscribe(List.of("data.topic.replica"));
+
+        final String testValue = "{\"key1\":\"value1\",\"key2\":12}";
+        producer.send(new ProducerRecord<>("data.topic", "user", testValue));
+        producer.flush();
+
+        var msgCount = 0;
+
+        while(!waiter.found) {
+            for (int i = 0; i < 2; i++) {
+                final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(5000));
+                for (ConsumerRecord<String, String> record : records) {
+                    System.out.println(record);
+                    Assert.assertEquals(testValue, record.value());
+                    ++msgCount;
+                }
+            }
+
+        }
+        Assert.assertEquals(1, msgCount);
+    }
+
 }
