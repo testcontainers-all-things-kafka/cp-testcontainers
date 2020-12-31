@@ -2,7 +2,9 @@ package net.christophschubert.cp.testcontainers;
 
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.AbstractWaitStrategy;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.WaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -31,16 +33,31 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         return this;
     }
 
+    /**
+     * Prepare ksqlDB container to start in headless mode with the provided query-file.
+     *
+     * No HTTP port will be opened when starting in headless mode.
+     * @param queriesFile the path to the file
+     * @return this container
+     */
     public KsqlDBContainer withQueriesFile(String queriesFile) {
         final String containerPath = "/queries.sql";
         withCopyFileToContainer(MountableFile.forHostPath(queriesFile), containerPath);
         withEnv("KSQL_KSQL_QUERIES_FILE", containerPath);
+        waitingFor(Wait.forLogMessage(".*INFO Server up and running.*", 1)); // no HTTP port wil be opened in headless mode
         return this;
     }
+
 
     public KsqlDBContainer withSchemaRegistry(SchemaRegistryContainer schemaRegistry) {
         withEnv("KSQL_KSQL_SCHEMA_REGISTRY_URL", schemaRegistry.getInternalBaseUrl());
         dependsOn(schemaRegistry);
+        return this;
+    }
+
+    public KsqlDBContainer withConnect(KafkaConnectContainer connectContainer) {
+        withEnv("KSQL_KSQL_CONNECT_URL", connectContainer.getInternalBaseUrl());
+        dependsOn(connectContainer);
         return this;
     }
 }
