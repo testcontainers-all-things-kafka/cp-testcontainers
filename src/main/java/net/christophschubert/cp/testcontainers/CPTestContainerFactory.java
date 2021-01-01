@@ -4,9 +4,8 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class CPTestContainerFactory {
 
@@ -30,6 +29,54 @@ public class CPTestContainerFactory {
 
     public KafkaContainer createKafka() {
         return new KafkaContainer(imageName("cp-kafka")).withNetwork(network);
+    }
+
+    /**
+     * Create a new Kafka container with SASL PLAIN authentication enabled.
+     *
+     * Their will be one user admin with password admin-secret configured implicitly.
+     *
+     * @param userAndPasswords additional users and their passwords.
+     * @return
+     */
+    public KafkaContainer createKafkaSaslPlain(Map<String, String> userAndPasswords) {
+        // The testcontainer Kafka module specifies two listeners PLAINTEXT and BROKER.
+        // The advertised listener of PLAINTEXT is mapped two a port on localhost.
+        // For Confluent Platform components running in the same Docker network as the broker we need to use the BROKER listener
+        // (which should really be called INTERNAL).
+        //
+        // see https://www.testcontainers.org/modules/kafka/ for details
+
+        final String admin = "admin";
+        final String adminSecret = "admin-secret";
+        final Map<String, String> userInfo = new HashMap<>(userAndPasswords);
+        userInfo.put(admin, adminSecret);
+
+        return new KafkaContainer(imageName("cp-kafka"))
+                .withNetwork(network)
+                .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
+                .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
+                .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN")
+                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN")
+                .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", "PLAIN")
+                .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  formatJaas(admin, adminSecret, Map.of(admin, adminSecret)))
+                .withEnv("KAFKA_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret, Collections.emptyMap()))
+                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret, userInfo));
+        //TODO: enable authorization
+
+    }
+
+    static String formatJaas(String user, String password, Map<String, String> additionalUsers) {
+        final var collectUsers = additionalUsers.entrySet().stream()
+                .map(e -> String.format("user_%s=\"%s\"", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(" "));
+        return String.format(
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\" %s;",
+                user, password, collectUsers);
+    }
+
+    static String formatJaas(String user, String password) {
+        return formatJaas(user, password, Collections.emptyMap());
     }
 
     public SchemaRegistryContainer createSchemaRegistry(KafkaContainer bootstrap) {
