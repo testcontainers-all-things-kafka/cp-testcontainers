@@ -42,8 +42,7 @@ check.dependsOn integrationTest
 
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
 
     compile group: 'org.apache.kafka', name: 'connect-api', version: '2.6.0'
     compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.6.0'
@@ -54,6 +53,10 @@ dependencies {
     compile "org.testcontainers:kafka:1.15.1"
 
     compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.29'
+
+    intTestImplementation group: 'io.rest-assured', name: 'rest-assured', version: '4.3.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 
 
     // for localstack/S3 connector integration test
