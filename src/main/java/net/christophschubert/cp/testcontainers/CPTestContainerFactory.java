@@ -75,7 +75,7 @@ public class CPTestContainerFactory {
                 user, password, collectUsers);
     }
 
-    static String formatJaas(String user, String password) {
+    public static String formatJaas(String user, String password) {
         return formatJaas(user, password, Collections.emptyMap());
     }
 

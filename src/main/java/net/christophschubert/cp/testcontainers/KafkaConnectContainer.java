@@ -15,8 +15,8 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
     static final int defaultPort = 8083;
 
     private void _configure(KafkaContainer bootstrap) {
-        withStartupTimeout(Duration.ofMinutes(5));
         waitingFor(Wait.forHttp("/connectors"));
+        withStartupTimeout(Duration.ofMinutes(5)); //Needs to be placed _after_ call to waitingFor
         withEnv("CONNECT_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
         withEnv("CONNECT_REST_PORT", "" + httpPort);
         withEnv("CONNECT_GROUP_ID", "connect");

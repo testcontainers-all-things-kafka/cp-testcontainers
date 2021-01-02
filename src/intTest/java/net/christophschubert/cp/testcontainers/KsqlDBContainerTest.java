@@ -2,14 +2,11 @@ package net.christophschubert.cp.testcontainers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
-import net.christophschubert.cp.testcontainers.util.ConsumerLoop;
+import net.christophschubert.cp.testcontainers.util.TestClients;
+import net.christophschubert.cp.testcontainers.util.TestClients.TestConsumer;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
@@ -23,7 +20,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 public class KsqlDBContainerTest {
     final ObjectMapper mapper = new ObjectMapper();
@@ -99,22 +95,14 @@ public class KsqlDBContainerTest {
                 .withQueriesFile("./src/intTest/resources/ksqlTest.sql")
                 .withServiceId(serviceId)
                 .withStartupTimeout(Duration.ofMinutes(5));
-
         ksqlDB.start();
 
-
-        final var consumerProperties = new Properties();
-        consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
-        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
-        consumerProperties.put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistry.getBaseUrl());
-        consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
-        consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        final Consumer<String, GenericRecord> consumer = new KafkaConsumer<>(consumerProperties);
+        final TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
         consumer.subscribe(List.of("users_avro"));
 
-        var messages = ConsumerLoop.loopUntil(consumer, 5);
+        var messages = consumer.consumeUntil(5);
         Assert.assertEquals(5, messages.size());
+        System.out.println(messages);
+        Assert.assertNotNull(messages.get(0).get("USERID"));
     }
 }

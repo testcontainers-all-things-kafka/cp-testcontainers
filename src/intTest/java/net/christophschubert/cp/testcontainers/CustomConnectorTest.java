@@ -2,18 +2,13 @@ package net.christophschubert.cp.testcontainers;
 
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
-import net.christophschubert.cp.testcontainers.util.ConsumerLoop;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import net.christophschubert.cp.testcontainers.util.TestClients;
 import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 public class CustomConnectorTest {
@@ -38,17 +33,9 @@ public class CustomConnectorTest {
         final ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
         connectClient.startConnector(dataGenConfig);
 
-        final var consumerProperties = new Properties();
-        consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
-        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
-        consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        final Consumer<String, String> consumer = new KafkaConsumer<>(consumerProperties);
+        final TestClients.TestConsumer<String, String> consumer = TestClients.createConsumer(kafka.getBootstrapServers());
         consumer.subscribe(List.of(topicName));
 
-        final var recordValues = ConsumerLoop.loopUntil(consumer, numMessages);
-        Assert.assertEquals(numMessages, recordValues.size());
+        Assert.assertEquals(numMessages,  consumer.consumeUntil(numMessages).size());
     }
 }

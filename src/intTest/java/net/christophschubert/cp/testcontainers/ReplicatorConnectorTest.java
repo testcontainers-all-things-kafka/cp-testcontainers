@@ -3,17 +3,16 @@ package net.christophschubert.cp.testcontainers;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.LogWaiter;
+import net.christophschubert.cp.testcontainers.util.TestClients;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
@@ -24,7 +23,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 public class ReplicatorConnectorTest {
@@ -59,26 +57,15 @@ public class ReplicatorConnectorTest {
         final ConnectClient connectClient = new ConnectClient(replicatorContainer.getBaseUrl());
         connectClient.startConnector(replicatorConfig);
 
-        final var producerProperties = new Properties();
-        producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, sourceKafka.getBootstrapServers());
-        producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
-        final Producer<String, String> producer = new KafkaProducer<>(producerProperties);
-
-        final var consumerProperties = new Properties();
-        consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, destinationKafka.getBootstrapServers());
-        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
-        consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        final Consumer<String, String> consumer = new KafkaConsumer<>(consumerProperties);
-        consumer.subscribe(List.of("data.topic.replica"));
+        final Producer<String, String> producer = TestClients.createProducer(sourceKafka.getBootstrapServers());
 
         final String testValue = "some-value";
         producer.send(new ProducerRecord<>("data.topic", "user", testValue));
         producer.flush();
+
+        final Consumer<String, String> consumer = TestClients.createConsumer(destinationKafka.getBootstrapServers());
+        consumer.subscribe(List.of("data.topic.replica"));
 
         var msgCount = 0;
 
@@ -91,7 +78,6 @@ public class ReplicatorConnectorTest {
                     ++msgCount;
                 }
             }
-
         }
         Assert.assertEquals(1, msgCount);
     }
@@ -129,21 +115,9 @@ public class ReplicatorConnectorTest {
         final ConnectClient connectClient = new ConnectClient(replicatorContainer.getBaseUrl());
         connectClient.startConnector(replicatorConfig);
 
-        final var producerProperties = new Properties();
-        producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, sourceKafka.getBootstrapServers());
-        producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
-        final Producer<String, String> producer = new KafkaProducer<>(producerProperties);
-
-        final var consumerProperties = new Properties();
-        consumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, destinationKafka.getBootstrapServers());
-        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
-        consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        final Consumer<String, String> consumer = new KafkaConsumer<>(consumerProperties);
+        final Producer<String, String> producer = TestClients.createProducer(sourceKafka.getBootstrapServers());
+        final Consumer<String, String> consumer = TestClients.createConsumer(destinationKafka.getBootstrapServers());
         consumer.subscribe(List.of("data.topic.replica"));
 
         final String testValue = "{\"key1\":\"value1\",\"key2\":12}";
