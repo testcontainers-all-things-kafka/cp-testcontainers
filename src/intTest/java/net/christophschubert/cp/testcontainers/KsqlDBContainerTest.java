@@ -102,7 +102,6 @@ public class KsqlDBContainerTest {
 
         var messages = consumer.consumeUntil(5);
         Assert.assertEquals(5, messages.size());
-        System.out.println(messages);
         Assert.assertNotNull(messages.get(0).get("USERID"));
     }
 }
