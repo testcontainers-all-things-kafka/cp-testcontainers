@@ -65,10 +65,10 @@ public class ConnectorConfig {
     }
 
     @JsonProperty("name")
-    private final String name;
+    public final String name;
 
     @JsonProperty("config")
-    private final Map<String, Object> config;
+    public final Map<String, Object> config;
 
     @JsonCreator
     public ConnectorConfig(@JsonProperty("name") String name, @JsonProperty("config") Map<String, Object> config) {
