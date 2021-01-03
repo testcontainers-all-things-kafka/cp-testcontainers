@@ -4,8 +4,8 @@ plugins {
 
 apply plugin: 'maven'
 
-group 'net.christophschubert'
-version '0.2.0-SNAPSHOT'
+group = 'com.github.christophschubert'
+version = '0.1.1'
 
 sourceCompatibility = 1.11
 
