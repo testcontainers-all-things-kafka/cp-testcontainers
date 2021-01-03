@@ -5,6 +5,7 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import net.christophschubert.cp.testcontainers.CPTestContainerFactory;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -53,9 +54,11 @@ public class TestClients {
             final List<V> results = new ArrayList<>();
             for (int i = 0; i < tries; ++i) {
                 final var records = poll(timeout);
-                records.forEach(r -> results.add(r.value()));
-                if (results.size() >= maxRecords)
-                    return results;
+                for (ConsumerRecord<K, V> r : records) {
+                    if (results.size() >= maxRecords)
+                        return results;
+                    results.add(r.value());
+                }
             }
             return results;
         }
