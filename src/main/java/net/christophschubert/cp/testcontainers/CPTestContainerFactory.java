@@ -23,9 +23,6 @@ public class CPTestContainerFactory {
         this(Network.newNetwork());
     }
 
-    DockerImageName imageName(String componentName) {
-        return DockerImageName.parse(String.format("%s/%s:%s", repository, componentName, tag));
-    }
 
     public KafkaContainer createKafka() {
         return new KafkaContainer(imageName("cp-kafka")).withNetwork(network);
@@ -37,7 +34,7 @@ public class CPTestContainerFactory {
      * Their will be one user admin with password admin-secret configured implicitly.
      *
      * @param userAndPasswords additional users and their passwords.
-     * @return
+     * @return a KafkaContainer with external SASL Plain listener
      */
     public KafkaContainer createKafkaSaslPlain(Map<String, String> userAndPasswords) {
         return createKafkaSaslPlain(userAndPasswords, false);
@@ -72,35 +69,8 @@ public class CPTestContainerFactory {
             kafka.withEnv(pToEKafka("authorizer.class.name"), "kafka.security.authorizer.AclAuthorizer")
                 .withEnv(pToEKafka("super.users"), "User:" + admin);
         }
+
         return kafka;
-    }
-
-    /**
-     * Translates property keys to environment variables.
-     *
-     * @param componentPrefix prefix of the component, e.g. KAFKA, CONNECT, etc
-     * @param propertyName name of the original property
-     * @return environment variable corresponding to the property as expected by Docker container configure scripts
-     */
-    static String pToE(String componentPrefix, String propertyName) {
-        return componentPrefix + "_" + propertyName.replace('.', '_').toUpperCase();
-    }
-
-    static String pToEKafka(String propertyName) {
-        return pToE("KAFKA", propertyName);
-    }
-
-    static String formatJaas(String user, String password, Map<String, String> additionalUsers) {
-        final var collectUsers = additionalUsers.entrySet().stream()
-                .map(e -> String.format("user_%s=\"%s\"", e.getKey(), e.getValue()))
-                .collect(Collectors.joining(" "));
-        return String.format(
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\" %s;",
-                user, password, collectUsers);
-    }
-
-    public static String formatJaas(String user, String password) {
-        return formatJaas(user, password, Collections.emptyMap());
     }
 
     public SchemaRegistryContainer createSchemaRegistry(KafkaContainer bootstrap) {
@@ -143,12 +113,45 @@ public class CPTestContainerFactory {
      * Creates a ksqlDB server container using a independently released ksqlDB image version.
      *
      * @param bootstrap Kafka container to use as bootstrap server
-     * @param tag the version number of the ksqlDB server image to use(e.g. 0.14.0 or latest)
+     * @param tag the version number of the ksqlDB server image to use (e.g. 0.14.0 or latest)
      * @return a ksqlDB container
      */
     public KsqlDBContainer createKsqDB(KafkaContainer bootstrap, String tag) {
         final var imageName = DockerImageName.parse(String.format("%s/ksqldb-server:%s", repository, tag));
         return new KsqlDBContainer(imageName, bootstrap, network);
+    }
+
+    DockerImageName imageName(String componentName) {
+        return DockerImageName.parse(String.format("%s/%s:%s", repository, componentName, tag));
+    }
+
+    // helper methods
+    static String formatJaas(String user, String password, Map<String, String> additionalUsers) {
+        final var collectUsers = additionalUsers.entrySet().stream()
+                .map(e -> String.format("user_%s=\"%s\"", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(" "));
+        return String.format(
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\" %s;",
+                user, password, collectUsers);
+    }
+
+    public static String formatJaas(String user, String password) {
+        return formatJaas(user, password, Collections.emptyMap());
+    }
+
+    /**
+     * Translates property keys to environment variables.
+     *
+     * @param componentPrefix prefix of the component, e.g. KAFKA, CONNECT, etc
+     * @param propertyName name of the original property
+     * @return environment variable corresponding to the property as expected by Docker container configure scripts
+     */
+    static String pToE(String componentPrefix, String propertyName) {
+        return componentPrefix + "_" + propertyName.replace('.', '_').toUpperCase();
+    }
+
+    static String pToEKafka(String propertyName) {
+        return pToE("KAFKA", propertyName);
     }
 
 }
