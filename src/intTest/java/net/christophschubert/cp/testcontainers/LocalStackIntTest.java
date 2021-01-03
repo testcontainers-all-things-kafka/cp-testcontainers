@@ -2,6 +2,7 @@ package net.christophschubert.cp.testcontainers;
 
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
+import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
@@ -44,14 +45,15 @@ public class LocalStackIntTest {
         connect.start();
 
 
-        final var numberMessages = 100;
+
+        final var numberMessages = 30;
         final var topicName = "datagen";
 
-        final var dataGenConfig = ConnectorConfig.source("datagen", "io.confluent.kafka.connect.datagen.DatagenConnector")
-                .with("kafka.topic", topicName)
-                .with("quickstart", "inventory")
-                .with("iterations", numberMessages) // #msg per task
-                .with("value.converter.schemas.enable", "false");
+        final var dataGenConfig = new DataGenConfig("datagen")
+                .withKafkaTopic(topicName)
+                .withQuickstart("inventory")
+                .withIterations(numberMessages)
+                .with("value.converter.schemas.enable", false);
 
         final ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
         connectClient.startConnector(dataGenConfig);

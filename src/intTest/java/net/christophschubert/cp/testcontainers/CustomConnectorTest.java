@@ -1,7 +1,7 @@
 package net.christophschubert.cp.testcontainers;
 
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
-import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
+import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
 import org.junit.Assert;
 import org.junit.Test;
@@ -19,16 +19,16 @@ public class CustomConnectorTest {
         final var kafka = factory.createKafka();
         kafka.start();
         final var connect = factory.createCustomConnector(Set.of("confluentinc/kafka-connect-s3:latest", "confluentinc/kafka-connect-datagen:0.4.0"), kafka);
-//        connect.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         connect.start();
 
         final var topicName = "datagen";
         final int numMessages = 10;
-        final var dataGenConfig = ConnectorConfig.source("datagen", "io.confluent.kafka.connect.datagen.DatagenConnector")
-                .with("kafka.topic", topicName)
-                .with("quickstart", "inventory")
-                .with("instances", numMessages)
+        final var dataGenConfig = new DataGenConfig("datagen-connector")
+                .withKafkaTopic(topicName)
+                .withQuickstart("inventory")
+                .withIterations(numMessages)
                 .with("value.converter.schemas.enable", "false");
+
 
         final ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
         connectClient.startConnector(dataGenConfig);

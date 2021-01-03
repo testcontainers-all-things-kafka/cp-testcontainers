@@ -3,6 +3,7 @@ package net.christophschubert.cp.testcontainers;
 import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
+import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
 import net.christophschubert.cp.testcontainers.util.TestClients.TestConsumer;
 import org.apache.avro.generic.GenericRecord;
@@ -108,14 +109,14 @@ public class KsqlDBContainerTest {
         connect.start();
 
         final var connectorName = "datagen-users";
-        final ConnectorConfig connectorConfig = ConnectorConfig.source(connectorName,  "io.confluent.kafka.connect.datagen.DatagenConnector")
-                .with("kafka.topic", "users")
-                .with("quickstart", "users")
+        final ConnectorConfig connectorConfig = new DataGenConfig(connectorName)
+                .withIterations(10000000)
+                .withKafkaTopic("users")
+                .withQuickstart("users")
                 .withKeyConverter("org.apache.kafka.connect.storage.StringConverter")
                 .withValueConverter("org.apache.kafka.connect.json.JsonConverter")
-                .with("value.converter.schemas.enable", "false")
-                .with("max.interval", 1000)
-                .with("iterations", 10000000);
+                .with("value.converter.schemas.enable", false);
+
         ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
         connectClient.startConnector(connectorConfig);
 
