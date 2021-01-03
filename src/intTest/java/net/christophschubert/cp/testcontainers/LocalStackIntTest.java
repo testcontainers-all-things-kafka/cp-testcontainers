@@ -26,7 +26,7 @@ import java.util.Set;
 public class LocalStackIntTest {
     @Test
     public void customConnectorTest() throws IOException, InterruptedException {
-        final Network network = Network.newNetwork();
+        final Network network = Network.newNetwork(); //explicitly set network so that localstack container can live on the same network
         final CPTestContainerFactory factory = new CPTestContainerFactory(network);
 
         final LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.11.3"))
@@ -43,7 +43,6 @@ public class LocalStackIntTest {
         connect.withEnv("AWS_ACCESS_KEY", localstack.getAccessKey());
         connect.withEnv("AWS_SECRET_KEY", localstack.getSecretKey());
         connect.start();
-
 
 
         final var numberMessages = 30;

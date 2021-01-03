@@ -18,7 +18,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,13 +32,11 @@ public class SchemaRegistryContainerTest {
     @Test
     public void setupSchemaRegistry() throws IOException, InterruptedException {
 
-        final var testContainerFactory = new CPTestContainerFactory(Network.newNetwork());
+        final var testContainerFactory = new CPTestContainerFactory();
 
         final KafkaContainer sourceKafka = testContainerFactory.createKafka();
-        sourceKafka.start();
-
         final SchemaRegistryContainer sourceSchemaRegistry = testContainerFactory.createSchemaRegistry(sourceKafka);
-        sourceSchemaRegistry.start();
+        sourceSchemaRegistry.start(); //will implicitly start kafka container
 
         final HttpClient client = HttpClient.newBuilder().build();
 
@@ -80,6 +77,7 @@ public class SchemaRegistryContainerTest {
         final ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(500));
         for (ConsumerRecord<String, GenericRecord> record : records) {
             Assert.assertEquals(originalRecord, record.value());
+            System.out.println("consumed record " + record.value());
         }
     }
 }
