@@ -40,6 +40,10 @@ public class CPTestContainerFactory {
      * @return
      */
     public KafkaContainer createKafkaSaslPlain(Map<String, String> userAndPasswords) {
+        return createKafkaSaslPlain(userAndPasswords, false);
+    }
+
+    public KafkaContainer createKafkaSaslPlain(Map<String, String> userAndPasswords, boolean enableAuthorizationViaAcls) {
         // The testcontainer Kafka module specifies two listeners PLAINTEXT and BROKER.
         // The advertised listener of PLAINTEXT is mapped two a port on localhost.
         // For Confluent Platform components running in the same Docker network as the broker we need to use the BROKER listener
@@ -52,7 +56,7 @@ public class CPTestContainerFactory {
         final Map<String, String> userInfo = new HashMap<>(userAndPasswords);
         userInfo.put(admin, adminSecret);
 
-        return new KafkaContainer(imageName("cp-kafka"))
+        final var kafka =  new KafkaContainer(imageName("cp-kafka"))
                 .withNetwork(network)
                 .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
                 .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
@@ -62,8 +66,28 @@ public class CPTestContainerFactory {
                 .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  formatJaas(admin, adminSecret, Map.of(admin, adminSecret)))
                 .withEnv("KAFKA_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret, Collections.emptyMap()))
                 .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret, userInfo));
-        //TODO: enable authorization
+        if (enableAuthorizationViaAcls) {
+            //Remark: should use kafka.security.auth.SimpleAclAuthorizer for tags BEFORE 5.4.0.
+            //Since this is pretty ancient by now, no logic for choosing the right authorizer is implemented.
+            kafka.withEnv(pToEKafka("authorizer.class.name"), "kafka.security.authorizer.AclAuthorizer")
+                .withEnv(pToEKafka("super.users"), "User:" + admin);
+        }
+        return kafka;
+    }
 
+    /**
+     * Translates property keys to environment variables.
+     *
+     * @param componentPrefix prefix of the component, e.g. KAFKA, CONNECT, etc
+     * @param propertyName name of the original property
+     * @return environment variable corresponding to the property as expected by Docker container configure scripts
+     */
+    static String pToE(String componentPrefix, String propertyName) {
+        return componentPrefix + "_" + propertyName.replace('.', '_').toUpperCase();
+    }
+
+    static String pToEKafka(String propertyName) {
+        return pToE("KAFKA", propertyName);
     }
 
     static String formatJaas(String user, String password, Map<String, String> additionalUsers) {
