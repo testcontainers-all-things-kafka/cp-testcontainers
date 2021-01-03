@@ -1,7 +1,6 @@
 package net.christophschubert.cp.testcontainers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
@@ -12,17 +11,14 @@ import org.junit.Test;
 import org.testcontainers.containers.Network;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.*;
 
 public class KsqlDBContainerTest {
-    final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void setupKsqlDB() {
@@ -32,12 +28,46 @@ public class KsqlDBContainerTest {
         kafka.start();
 
         final var ksqlDB = containerFactory.createKsqlDB(kafka);
-        ksqlDB.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         ksqlDB.start();
+
+        RestAssured.port = ksqlDB.getFirstMappedPort();
+
+        given()
+                .when()
+                .get("/healthcheck")
+                .then()
+                .log().all()
+                .statusCode(200)
+                .body("isHealthy", is(true));
     }
 
+
     @Test
-    public void setupKsqlDBWithSchemaRegistry() throws URISyntaxException, IOException, InterruptedException {
+    public void setupKsqlDBWithFixedCustomImage() {
+        final var tag = "0.14.0";
+        final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
+
+        final var kafka = containerFactory.createKafka();
+        kafka.start();
+
+        final var ksqlDB = containerFactory.createKsqDB(kafka, tag);
+        ksqlDB.start();
+
+        RestAssured.port = ksqlDB.getFirstMappedPort();
+
+        given()
+                .when()
+                .get("/info")
+                .then()
+                .log().all()
+                .statusCode(200)
+                .body("KsqlServerInfo.serverStatus", is("RUNNING"))
+                .body("KsqlServerInfo.version", startsWith(tag));
+    }
+
+
+    @Test
+    public void setupKsqlDBWithSchemaRegistry() {
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
         final var kafka = containerFactory.createKafka();
@@ -53,13 +83,14 @@ public class KsqlDBContainerTest {
                 .withServiceId(serviceId);
         ksqlDB.start();
 
-        final var httpClient = HttpClient.newBuilder().build();
-        final var request = HttpRequest.newBuilder(new URI(ksqlDB.getBaseUrl() + "/info")).build();
-        final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        Assert.assertEquals(200, response.statusCode());
+        RestAssured.port = ksqlDB.getFirstMappedPort();
 
-        final var parsedResponse = mapper.readValue(response.body(), new TypeReference<Map<String, Map<String, String>>>() {});
-        Assert.assertEquals(serviceId, parsedResponse.get("KsqlServerInfo").get("ksqlServiceId"));
+        given()
+                .when()
+                .get("/info")
+                .then()
+                .statusCode(200)
+                .body("KsqlServerInfo.ksqlServiceId", is(serviceId));
     }
 
 
@@ -76,7 +107,8 @@ public class KsqlDBContainerTest {
         final var connect = containerFactory.createCustomConnector("confluentinc/kafka-connect-datagen:0.4.0", kafka);
         connect.start();
 
-        final ConnectorConfig connectorConfig = ConnectorConfig.source("datagen-users",  "io.confluent.kafka.connect.datagen.DatagenConnector")
+        final var connectorName = "datagen-users";
+        final ConnectorConfig connectorConfig = ConnectorConfig.source(connectorName,  "io.confluent.kafka.connect.datagen.DatagenConnector")
                 .with("kafka.topic", "users")
                 .with("quickstart", "users")
                 .withKeyConverter("org.apache.kafka.connect.storage.StringConverter")
@@ -96,6 +128,7 @@ public class KsqlDBContainerTest {
                 .withServiceId(serviceId)
                 .withStartupTimeout(Duration.ofMinutes(5));
         ksqlDB.start();
+        Assert.assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
 
         final TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
         consumer.subscribe(List.of("users_avro"));
