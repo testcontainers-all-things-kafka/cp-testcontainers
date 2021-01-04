@@ -10,11 +10,14 @@ import org.apache.avro.generic.GenericRecord;
 import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
+import org.testcontainers.lifecycle.Startables;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
@@ -96,17 +99,14 @@ public class KsqlDBContainerTest {
 
 
     @Test
-    public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws IOException, InterruptedException {
+    public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws IOException, InterruptedException, ExecutionException {
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
         final var kafka = containerFactory.createKafka();
-        kafka.start();
-
         final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
-        schemaRegistry.start();
-
         final var connect = containerFactory.createCustomConnector("confluentinc/kafka-connect-datagen:0.4.0", kafka);
-        connect.start();
+
+        Startables.deepStart(Stream.of(schemaRegistry, connect)).get();
 
         final var connectorName = "datagen-users";
         final ConnectorConfig connectorConfig = new DataGenConfig(connectorName)
