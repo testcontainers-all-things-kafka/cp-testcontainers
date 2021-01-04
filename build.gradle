@@ -71,3 +71,9 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+integrationTest {
+   // forkEvery 1
+}
+
+

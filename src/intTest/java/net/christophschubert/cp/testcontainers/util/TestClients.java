@@ -10,12 +10,15 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.Assert;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class TestClients {
     public static Map<String, Object> createJaas(String user, String password) {
@@ -90,5 +93,23 @@ public class TestClients {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.putAll(addProps);
         return new TestConsumer<>(props);
+    }
+
+    static public void basicReadWriteTest(String bootStrapServer) {
+        final var producer = TestClients.createProducer(bootStrapServer);
+        final var topic = "test-topic";
+        final var value = "hello-world";
+        try {
+            producer.send(new ProducerRecord<>(topic, value)).get();
+
+            final var consumer = createConsumer(bootStrapServer);
+            consumer.subscribe(Set.of(topic));
+            final var results = consumer.consumeUntil(1);
+            System.out.println("RESULTS " + results);
+            Assert.assertEquals(1, results.size());
+            Assert.assertEquals(value, results.get(0));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new AssertionError("Basic Kafka test failed", e);
+        }
     }
 }

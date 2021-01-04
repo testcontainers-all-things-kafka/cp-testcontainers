@@ -1,0 +1,57 @@
+dn: ou=users,dc=confluent,dc=io
+objectClass: organizationalUnit
+ou: Users
+
+dn: ou=groups,dc=confluent,dc=io
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=Kafka Developers,ou=groups,{{ LDAP_BASE_DN }}
+objectClass: top
+objectClass: posixGroup
+cn: Kafka Developers
+gidNumber: 5000
+
+dn: cn=ProjectA,ou=groups,{{ LDAP_BASE_DN }}
+objectClass: top
+objectClass: posixGroup
+cn: ProjectA
+gidNumber: 5001
+
+dn: cn=ProjectB,ou=groups,{{ LDAP_BASE_DN }}
+objectClass: top
+objectClass: posixGroup
+cn: ProjectB
+gidNumber: 5002
+
+dn: cn=alice,ou=users,{{ LDAP_BASE_DN }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: alice
+sn: LookingGlass
+givenName: Alice
+cn: alice
+displayName: Alice LookingGlass
+uidNumber: 10000
+gidNumber: 5000
+userPassword: alice-secret
+gecos: alice
+loginShell: /bin/bash
+homeDirectory: /home/alice
+
+dn: cn=barnie,ou=users,{{ LDAP_BASE_DN }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: barnie
+sn: Rubble
+givenName: Barnie
+cn: barnie
+displayName: Barnie Rubble
+uidNumber: 10001
+gidNumber: 5000
+userPassword: barnie-secret
+gecos: barnie
+loginShell: /bin/bash
+homeDirectory: /home/barnie
