@@ -2,6 +2,8 @@ package net.christophschubert.cp.testcontainers.util;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import net.christophschubert.cp.testcontainers.CPTestContainerFactory;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -80,6 +82,15 @@ public class TestClients {
         return props;
     }
 
+
+
+    public static TestConsumer<String, String> createConsumer(String bootstrapServer, Map<String, Object> addProps) {
+        final Map<String, Object> props = getCommonConsumerProps(bootstrapServer);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.putAll(addProps);
+        return new TestConsumer<>(props);
+    }
+
     public static TestConsumer<String, GenericRecord> createAvroConsumer(String bootstrapServer, String schemaRegistryUrl) {
         final var props = getCommonConsumerProps(bootstrapServer);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
@@ -88,11 +99,14 @@ public class TestClients {
         return new TestConsumer<>(props);
     }
 
-    public static TestConsumer<String, String> createConsumer(String bootstrapServer, Map<String, Object> addProps) {
-        final Map<String, Object> props = getCommonConsumerProps(bootstrapServer);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.putAll(addProps);
-        return new TestConsumer<>(props);
+    public static Producer<String, GenericRecord> createAvroProducer(String bootstrapServer, String schemaRegistryUrl) {
+        final Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
+        props.put(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+        props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
+        return new KafkaProducer<String, GenericRecord>(props);
     }
 
     static public void basicReadWriteTest(String bootStrapServer) {
