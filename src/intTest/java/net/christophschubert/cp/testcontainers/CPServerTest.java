@@ -164,4 +164,26 @@ public class CPServerTest {
         given().auth().preemptive().basic(srUser, "sr-user-secret").when().get("subjects").then().statusCode(200).
                 body("", is(Collections.emptyList())).log().all();
     }
+
+    @Test
+    public void superUserShouldStartSRWithoutBinding() throws ExecutionException, InterruptedException {
+        final Network network = Network.newNetwork();
+        final var factory = new CPTestContainerFactory(network);
+        final var rbacFactory = new RbacEnabledContainerFactory(network);
+        final var ldap = rbacFactory.createLdap();
+
+        final var cpServer = factory.createCPServer();
+        rbacFactory.configureContainerForRBAC(cpServer);
+
+        final var sr = factory.createSchemaRegistry(cpServer);
+        rbacFactory.configureContainerForRBAC(sr, "alice", "alice-secret");
+        Startables.deepStart(List.of(cpServer, ldap, sr)).get();
+
+        RestAssured.port = sr.getMappedHttpPort();
+
+        given().when().get("subjects").then().statusCode(401);
+
+        given().auth().preemptive().basic("alice", "alice-secret").when().get("subjects").then().statusCode(200).
+                body("", is(Collections.emptyList())).log().all();
+    }
 }

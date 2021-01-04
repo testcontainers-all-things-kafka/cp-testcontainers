@@ -103,10 +103,13 @@ public class RbacEnabledContainerFactory {
         return container;
     }
 
-    public SchemaRegistryContainer configureContainerForRBAC(SchemaRegistryContainer schemaRegistryContainer) {
 
-        final String srPrincipal = "sr-user";
-        final String srSecret = "sr-user-secret";
+    public SchemaRegistryContainer configureContainerForRBAC(SchemaRegistryContainer schemaRegistryContainer) {
+        return configureContainerForRBAC(schemaRegistryContainer, "sr-user", "sr-user-secret");
+    }
+
+
+    public SchemaRegistryContainer configureContainerForRBAC(SchemaRegistryContainer schemaRegistryContainer, String srPrincipal, String srSecret) {
         final var mdsBootstrap = String.format("http://%s:8090", brokerNetworkAlias);
         final var saslJaasConfig =
                 String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
