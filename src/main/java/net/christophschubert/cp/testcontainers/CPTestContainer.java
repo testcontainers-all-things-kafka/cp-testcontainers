@@ -15,22 +15,33 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
     }
 
     protected final int httpPort;
+    protected final String propertyPrefix;
 
-    CPTestContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network, int httpPort) {
+    CPTestContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network, int httpPort, String propertyPrefix) {
         super(dockerImageName);
         dependsOn(bootstrap);
         withNetwork(network);
         withExposedPorts(httpPort);
         this.httpPort = httpPort;
+        this.propertyPrefix = propertyPrefix;
     }
 
-    CPTestContainer(ImageFromDockerfile dockerImage, KafkaContainer bootstrap, Network network, int httpPort) {
+
+    CPTestContainer(ImageFromDockerfile dockerImage, KafkaContainer bootstrap, Network network, int httpPort, String propertyPrefix) {
         super(dockerImage);
         dependsOn(bootstrap);
         withNetwork(network);
         withExposedPorts(httpPort);
         this.httpPort = httpPort;
+        this.propertyPrefix = propertyPrefix;
     }
+
+    CPTestContainer<SELF> withProperty(String property, Object value) {
+        final String envVar = propertyPrefix + "_" + property.replace('.', '_').toUpperCase();
+        withEnv(envVar, value.toString());
+        return this;
+    }
+
 
     public String getBaseUrl() {
         return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(httpPort));

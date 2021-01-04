@@ -14,7 +14,7 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
     static final int defaultPort = 8088;
 
     KsqlDBContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network) {
-        super(dockerImageName, bootstrap, network, defaultPort);
+        super(dockerImageName, bootstrap, network, defaultPort, "KSQL");
 
         withEnv("SCHEMA_REGISTRY_HOST_NAME", "ksqldb-server");
         withEnv("KSQL_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));

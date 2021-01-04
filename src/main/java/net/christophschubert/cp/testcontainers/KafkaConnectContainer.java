@@ -38,13 +38,13 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
     }
 
     KafkaConnectContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network) {
-        super(dockerImageName, bootstrap, network, defaultPort);
+        super(dockerImageName, bootstrap, network, defaultPort, "CONNECT");
         _configure(bootstrap);
 
     }
 
     protected KafkaConnectContainer(ImageFromDockerfile image, KafkaContainer bootstrap, Network network){
-        super(image, bootstrap, network, defaultPort);
+        super(image, bootstrap, network, defaultPort, "CONNECT");
         _configure(bootstrap);
     }
 

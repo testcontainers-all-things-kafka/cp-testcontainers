@@ -9,7 +9,7 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
     static final int defaultPort = 8081;
 
     SchemaRegistryContainer(DockerImageName imageName, KafkaContainer bootstrap, Network network) {
-        super(imageName, bootstrap, network, defaultPort);
+        super(imageName, bootstrap, network, defaultPort, "SCHEMA_REGISTRY");
 
         withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry");
         withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
