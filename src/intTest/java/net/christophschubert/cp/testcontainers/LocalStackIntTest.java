@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -21,11 +22,12 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 // test to start an S3 connector with LocalStack (https://www.testcontainers.org/modules/localstack/)
 public class LocalStackIntTest {
     @Test
-    public void customConnectorTest() throws IOException, InterruptedException {
+    public void s3sinkConnectorTest() throws IOException, InterruptedException, ExecutionException {
         final Network network = Network.newNetwork(); //explicitly set network so that localstack container can live on the same network
         final CPTestContainerFactory factory = new CPTestContainerFactory(network);
 
@@ -33,16 +35,14 @@ public class LocalStackIntTest {
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(network)
                 .withNetworkAliases("localstack");
-        localstack.start();
 
         final var kafka = factory.createKafka();
-        kafka.start();
-
         final var connect = factory.createCustomConnector(Set.of("confluentinc/kafka-connect-s3:latest", "confluentinc/kafka-connect-datagen:0.4.0"), kafka);
         connect.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         connect.withEnv("AWS_ACCESS_KEY", localstack.getAccessKey());
         connect.withEnv("AWS_SECRET_KEY", localstack.getSecretKey());
-        connect.start();
+
+        Startables.deepStart(List.of(connect, localstack)).get();
 
 
         final var numberMessages = 30;
@@ -57,10 +57,10 @@ public class LocalStackIntTest {
         final ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
         connectClient.startConnector(dataGenConfig);
 
-        S3ClientBuilder builder = S3Client.builder().endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3));
+        final S3ClientBuilder builder = S3Client.builder().endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3));
         builder.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())));
         builder.region(Region.of(localstack.getRegion()));
-        S3Client s3client = builder.build();
+        final S3Client s3client = builder.build();
 
         final var bucketName = "test-bucket";
         s3client.createBucket(builder1 -> builder1.bucket(bucketName));
