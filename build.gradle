@@ -5,7 +5,7 @@ plugins {
 apply plugin: 'maven'
 
 group = 'com.github.christophschubert'
-version = '0.1.1'
+version = '0.2.0-SNAPSHOT'
 
 sourceCompatibility = 1.11
 
