@@ -54,7 +54,7 @@ public class CPServerTest {
 
         final var cpServer = factory.createCPServer();
         rbacFactory.configureContainerForRBAC(cpServer);
-        cpServer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
+//        cpServer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         cpServer.start();
 
         RestAssured.port = cpServer.getMappedPort(8090);
@@ -185,5 +185,14 @@ public class CPServerTest {
 
         given().auth().preemptive().basic("alice", "alice-secret").when().get("subjects").then().statusCode(200).
                 body("", is(Collections.emptyList())).log().all();
+    }
+
+    @Test
+    public void startLdap() throws InterruptedException {
+        final Network network = Network.newNetwork();
+        final var rbacFactory = new RbacEnabledContainerFactory(network);
+        final var ldap = rbacFactory.createLdap();
+        ldap.start();
+        Thread.sleep(3000);
     }
 }

@@ -3,10 +3,13 @@ package net.christophschubert.cp.testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 
+import java.util.List;
 import java.util.Map;
 
-import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.*;
+import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.formatJaas;
+import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.pToEKafka;
 
 public class RbacEnabledContainerFactory {
 
@@ -26,17 +29,76 @@ public class RbacEnabledContainerFactory {
         this.network = network;
     }
 
-    public GenericContainer createLdap() {
+    public GenericContainer<?> createLdap() {
+        return createLdap(Map.of("alice", "alice-secret", "barney", "barney-secret", "sr-user", "sr-user-secret"));
+    }
 
-        return new GenericContainer<>("osixia/openldap:1.3.0")
+
+    public GenericContainer<?> createLdap(Map<String, String> ldapUsers) {
+        final String header = "dn: ou=users,dc=confluent,dc=io\n" +
+                "objectClass: organizationalUnit\n" +
+                "ou: Users\n" +
+                "\n" +
+                "dn: ou=groups,dc=confluent,dc=io\n" +
+                "objectClass: organizationalUnit\n" +
+                "ou: Groups\n\n";
+
+        StringBuilder builder = new StringBuilder(header);
+
+        var groups = List.of("Kafka Developers", "ProjectA", "ProjectB");
+        final var startGidNumber = 5000;
+        for (int i = 0; i < groups.size(); ++i) {
+            builder.append(formatGroupEntry(groups.get(i), startGidNumber + i));
+        }
+
+        var uidNumber = 10000;
+        for (Map.Entry<String, String> entry : ldapUsers.entrySet()) {
+            builder.append(formatUserEntry(entry.getKey(), entry.getValue(), uidNumber++));
+        }
+
+        var ldif =  builder.toString();
+
+        final var ldifBootstrapPath = "/container/service/slapd/assets/config/bootstrap/ldif/custom/custom.ldif";
+
+        final var image = new ImageFromDockerfile().withFileFromString("custom.ldif", ldif).withDockerfileFromBuilder(
+                db -> db.from("osixia/openldap:1.3.0").copy("custom.ldif", ldifBootstrapPath).build());
+
+
+        final var ldap =  new GenericContainer<>(image)
                 .withNetwork(network)
                 .withNetworkAliases("ldap")
                 .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()))
                 .withEnv("LDAP_ORGANISATION", "Confluent")
                 .withEnv("LDAP_DOMAIN", "confluent.io")
-                .withFileSystemBind("src/main/resources/ldap", "/container/service/slapd/assets/config/bootstrap/ldif/custom")
-                .withCommand("--copy-service"); // add  --loglevel debug to enabel debug info
+                .withCommand("--copy-service --loglevel debug");
+
+        return ldap;
     }
+
+    String formatGroupEntry(String groupName, int gidNumber) {
+        final var template = "dn: cn=%s,ou=groups,{{ LDAP_BASE_DN }}\n" +
+                "objectClass: top\n" +
+                "objectClass: posixGroup\n" +
+                "cn: %s\n" +
+                "gidNumber: %d\n\n";
+        return String.format(template, groupName, groupName, gidNumber);
+    }
+
+    String formatUserEntry(String username, String password, int uidNumber) {
+        final var template = "dn: cn=%s,ou=users,{{ LDAP_BASE_DN }}\n" +
+                "objectClass: inetOrgPerson\n" +
+                "objectClass: posixAccount\n" +
+                "uid: %s\n" +
+                "cn: %s\n" +
+                "sn: Snow\n" +
+                "uidNumber: %d\n" +
+                "gidNumber: 5000\n" +
+                "userPassword: %s\n" +
+                "homeDirectory: /home/%s\n\n";
+        return String.format(template, username, username, username, uidNumber, password, username);
+    }
+
+
 
     public KafkaContainer configureContainerForRBAC(KafkaContainer container) {
 
