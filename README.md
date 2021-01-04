@@ -2,15 +2,6 @@
 
 [Testcontainer](https://www.testcontainers.org/) modules for Confluent Platform components.
 
-## Supported components
-
-So far the following components are supported:
-
-- Schema Registry
-- ksqlDB
-- Connect
-- Replicator running on Connect
-- REST Proxy.
 
 ## Example
 
@@ -39,7 +30,39 @@ final var connect = factory.createCustomConnector(
 connect.start();
 ```
 
+The following snippet configures a CP-server container and a schema registry container with RBAC enabled:
+```java
+final var factory = new CPTestContainerFactory(network);
+final var rbacFactory = new RbacEnabledContainerFactory(network);
+final var ldap = rbacFactory.createLdap();
+
+final var cpServer = factory.createCPServer();
+rbacFactory.configureContainerForRBAC(cpServer);
+
+// configure access, see CPServerTest.java for details
+
+final var sr = factory.createSchemaRegistry(cpServer);
+rbacFactory.configureContainerForRBAC(sr);
+sr.start()
+```
+
+
 See the `intTest` source set for examples on how to set up containers.
+
+## Supported components
+
+So far the following components are supported:
+
+- Confluent Schema Registry
+- ksqlDB
+- Connect
+- Confluent Replicator running on Connect
+- Confluent REST Proxy.
+
+Moreover, we can create `KafkaContainer` instances which have RBAC and MDS enabled.
+So far, the following components can be configured to use RBAC:
+
+- Confluent Schema Registry
 
 ## Packages
 

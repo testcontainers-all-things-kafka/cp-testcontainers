@@ -6,10 +6,19 @@ import org.testcontainers.containers.Network;
 
 import java.util.Map;
 
-import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.formatJaas;
-import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.pToEKafka;
+import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.*;
 
 public class RbacEnabledContainerFactory {
+
+    static final String SASL_PLAINTEXT = "SASL_PLAINTEXT";
+    static final String PLAIN = "PLAIN";
+    static final String OAUTHBEARER = "OAUTHBEARER";
+
+    final String admin = "admin";
+    final String adminSecret = "admin-secret";
+    final String containerCertPath = "/tmp/conf";
+    final String localCertPath = "src/main/resources/certs";
+    final String brokerNetworkAlias = "kafka";
 
     final Network network;
 
@@ -30,14 +39,10 @@ public class RbacEnabledContainerFactory {
     }
 
     public KafkaContainer configureContainerForRBAC(KafkaContainer container) {
-        final String admin = "admin";
-        final String adminSecret = "admin-secret";
-        final String containerCertPath = "/tmp/conf";
-        final String brokerNetworkAlias = "kafka";
 
         container
                 .withNetworkAliases(brokerNetworkAlias)
-                .withFileSystemBind("src/main/resources/certs", containerCertPath)  //copy certificates
+                .withFileSystemBind(localCertPath, containerCertPath)  //copy certificates
                 .withEnv(pToEKafka("super.users"), "User:admin;User:mds;User:alice")
                 // KafkaContainer configures two listeners: PLAINTEXT (port 9093), and BROKER (port 9092), BROKER is used for the
                 // internal communication on the docker network. We need to configure two SASL mechanisms on BROKER.
@@ -45,7 +50,7 @@ public class RbacEnabledContainerFactory {
                 .withEnv(pToEKafka("listener.security.protocol.map"), "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
                 .withEnv(pToEKafka("confluent.metadata.security.protocol"), "SASL_PLAINTEXT")
                 .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
-                .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN")
+                .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", PLAIN)
                 .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", "PLAIN,OAUTHBEARER") //Plain for broker<->broker, oauthbearer for cp components<->broker
                 // configure inter broker comms and mds<->broker:
                 .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  formatJaas(admin, adminSecret, Map.of(admin, adminSecret, "mds", "mds-secret")))
@@ -54,7 +59,7 @@ public class RbacEnabledContainerFactory {
                 .withEnv(pToEKafka("listener.name.broker.oauthbearer.sasl.login.callback.handler.class"), "io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler")
                 .withEnv(pToEKafka("listener.name.broker.oauthbearer.sasl.jaas.config"), String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required publicKeyPath=\"%s\";", containerCertPath + "/public.pem"))
                 // configure communication with external clients
-                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN")
+                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", PLAIN)
                 .withEnv(pToEKafka("listener.name.plaintext.plain.sasl.server.callback.handler.class"), "io.confluent.security.auth.provider.ldap.LdapAuthenticateCallbackHandler")
                 .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret))
                 // set up authorizer
@@ -98,8 +103,36 @@ public class RbacEnabledContainerFactory {
         return container;
     }
 
+    public SchemaRegistryContainer configureContainerForRBAC(SchemaRegistryContainer schemaRegistryContainer) {
+
+        final String srPrincipal = "sr-user";
+        final String srSecret = "sr-user-secret";
+        final var mdsBootstrap = String.format("http://%s:8090", brokerNetworkAlias);
+        final var saslJaasConfig =
+                String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
+                        "username=\"%s\" password=\"%s\" metadataServerUrls=\"%s\";",
+                        srPrincipal, srSecret, mdsBootstrap);
+
+        schemaRegistryContainer
+                .withFileSystemBind(localCertPath, containerCertPath)
+                .withEnv("CUB_CLASSPATH", "/usr/share/java/confluent-security/schema-registry/*:/usr/share/java/schema-registry/*:/usr/share/java/cp-base-new/*")
+                .withProperty("kafkastore.security.protocol", SASL_PLAINTEXT)
+                .withProperty("kafkastore.sasl.mechanism", OAUTHBEARER)
+                .withProperty("kafkastore.sasl.login.callback.handler.class", "io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler")
+                .withProperty("kafkastore.sasl.jaas.config", saslJaasConfig)
+                .withProperty("debug", true)
+                .withProperty("schema.registry.resource.extension.class", "io.confluent.kafka.schemaregistry.security.SchemaRegistrySecurityResourceExtension")
+                .withProperty("confluent.schema.registry.authorizer.class", "io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer")
+                .withProperty("rest.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler")
+                .withProperty("confluent.metadata.bootstrap.server.urls", mdsBootstrap)
+                .withProperty("confluent.metadata.http.auth.credentials.provider", "BASIC")
+                .withProperty("confluent.metadata.basic.auth.user.info", srPrincipal + ":" + srSecret)
+                .withProperty("public.key.path", containerCertPath + "/public.pem");
+        return schemaRegistryContainer;
+    }
 
     String mdsPrefix(String property) {
         return pToEKafka("confluent.metadata.server." + property);
     }
+
 }

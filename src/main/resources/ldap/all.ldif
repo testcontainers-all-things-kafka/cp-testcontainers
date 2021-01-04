@@ -55,3 +55,19 @@ userPassword: barnie-secret
 gecos: barnie
 loginShell: /bin/bash
 homeDirectory: /home/barnie
+
+dn: cn=sr-user,ou=users,{{ LDAP_BASE_DN }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: sr-user
+sn: Service-Account
+givenName: Schema
+cn: sr-user
+displayName: Barnie Rubble
+uidNumber: 20001
+gidNumber: 5000
+userPassword: sr-user-secret
+gecos: sr-usr
+loginShell: /bin/bash
+homeDirectory: /home/sruser
