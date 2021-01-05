@@ -45,17 +45,17 @@ public class CPServerTest {
     }
 
     @Test
-    public void startCPServerWithMdsLdap() {
+    public void startCPServerWithMdsLdap() throws ExecutionException, InterruptedException {
         final Network network = Network.newNetwork();
         final var factory = new CPTestContainerFactory(network);
         final var rbacFactory = new RbacEnabledContainerFactory(network);
-        final var ldap = rbacFactory.createLdap();
-        ldap.start();
+        final var ldap = factory.createLdap();
 
         final var cpServer = factory.createCPServer();
         rbacFactory.configureContainerForRBAC(cpServer);
 //        cpServer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
-        cpServer.start();
+
+        Startables.deepStart(List.of(ldap, cpServer)).get();
 
         RestAssured.port = cpServer.getMappedPort(8090);
 
@@ -95,7 +95,7 @@ public class CPServerTest {
         final Network network = Network.newNetwork();
         final var factory = new CPTestContainerFactory(network);
         final var rbacFactory = new RbacEnabledContainerFactory(network);
-        final var ldap = rbacFactory.createLdap();
+        final var ldap = factory.createLdap();
 
         final var cpServer = factory.createCPServer();
         rbacFactory.configureContainerForRBAC(cpServer);
@@ -170,7 +170,7 @@ public class CPServerTest {
         final Network network = Network.newNetwork();
         final var factory = new CPTestContainerFactory(network);
         final var rbacFactory = new RbacEnabledContainerFactory(network);
-        final var ldap = rbacFactory.createLdap();
+        final var ldap = factory.createLdap();
 
         final var cpServer = factory.createCPServer();
         rbacFactory.configureContainerForRBAC(cpServer);
@@ -187,12 +187,5 @@ public class CPServerTest {
                 body("", is(Collections.emptyList())).log().all();
     }
 
-    @Test
-    public void startLdap() throws InterruptedException {
-        final Network network = Network.newNetwork();
-        final var rbacFactory = new RbacEnabledContainerFactory(network);
-        final var ldap = rbacFactory.createLdap();
-        ldap.start();
-        Thread.sleep(3000);
-    }
+
 }

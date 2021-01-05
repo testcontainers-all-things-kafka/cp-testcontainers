@@ -25,6 +25,9 @@ public class CPTestContainerFactory {
         this(Network.newNetwork());
     }
 
+    public LdapContainer createLdap() {
+        return new LdapContainer().withNetwork(network);
+    }
 
     public KafkaContainer createKafka() {
         return new KafkaContainer(imageName("cp-kafka")).withNetwork(network);
