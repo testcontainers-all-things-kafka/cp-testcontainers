@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class TestClients {
+
     public static Map<String, Object> createJaas(String user, String password) {
         return Map.of(
 
@@ -60,9 +61,9 @@ public class TestClients {
             for (int i = 0; i < tries; ++i) {
                 final var records = poll(timeout);
                 for (ConsumerRecord<K, V> r : records) {
+                    results.add(r.value());
                     if (results.size() >= maxRecords)
                         return results;
-                    results.add(r.value());
                 }
             }
             return results;
@@ -81,7 +82,6 @@ public class TestClients {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         return props;
     }
-
 
 
     public static TestConsumer<String, String> createConsumer(String bootstrapServer, Map<String, Object> addProps) {

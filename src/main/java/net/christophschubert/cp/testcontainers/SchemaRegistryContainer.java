@@ -30,7 +30,6 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
     }
 
     //TODO: move these to proper location
-
     final String containerCertPath = "/tmp/conf";
     final String localCertPath = "src/main/resources/certs";
 
@@ -41,7 +40,6 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
                 String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
                                 "username=\"%s\" password=\"%s\" metadataServerUrls=\"%s\";",
                         srPrincipal, srSecret, mdsBootstrap);
-
 
         withFileSystemBind(localCertPath, containerCertPath);
         withEnv("CUB_CLASSPATH", "/usr/share/java/confluent-security/schema-registry/*:/usr/share/java/schema-registry/*:/usr/share/java/cp-base-new/*");

@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -24,10 +26,22 @@ public class ConnectClient {
     private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper();
 
+
+    public ConnectClient(String baseURL, String userName, String password) {
+        this.baseUrl = baseURL;
+        this.httpClient = HttpClient.newBuilder().authenticator(new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(userName, password.toCharArray());
+            }
+        }).build();
+    }
+
     public ConnectClient(String baseURL) {
         this.baseUrl = baseURL;
         this.httpClient = HttpClient.newBuilder().build();
     }
+
 
     public Set<String> getConnectors() throws IOException, InterruptedException {
         final var request = HttpRequest.newBuilder(URI.create(baseUrl + "/connectors")).build();

@@ -7,6 +7,8 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class LdapContainer extends GenericContainer<LdapContainer> {
     static final DockerImageName baseImageName = DockerImageName.parse("osixia/openldap");
@@ -15,9 +17,12 @@ public class LdapContainer extends GenericContainer<LdapContainer> {
     static final String ldifBootstrapPath = "/container/service/slapd/assets/config/bootstrap/ldif/custom/custom.ldif";
 
     public LdapContainer() {
-        this(Map.of("alice", "alice-secret", "barney", "barney-secret", "sr-user", "sr-user-secret"));
+        this(Set.of("alice",  "barney", "sr-user" ));
     }
 
+    public LdapContainer(Set<String> usernames) {
+        this(usernames.stream().collect(Collectors.toMap(s -> s, s -> s + "-secret")));
+    }
 
     public LdapContainer(Map<String, String> ldapUsers) {
         super(new ImageFromDockerfile().withFileFromString("custom.ldif", formatLdif(ldapUsers)).withDockerfileFromBuilder(

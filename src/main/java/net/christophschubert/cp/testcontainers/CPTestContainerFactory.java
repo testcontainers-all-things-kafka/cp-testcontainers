@@ -1,7 +1,5 @@
 package net.christophschubert.cp.testcontainers;
 
-import org.testcontainers.containers.Container;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
@@ -23,6 +21,10 @@ public class CPTestContainerFactory {
 
     public CPTestContainerFactory() {
         this(Network.newNetwork());
+    }
+
+    public LdapContainer createLdap(Set<String> userNames) {
+        return new LdapContainer(userNames).withNetwork(network);
     }
 
     public LdapContainer createLdap() {
@@ -89,6 +91,17 @@ public class CPTestContainerFactory {
 
     public KafkaConnectContainer createKafkaConnect(KafkaContainer bootstrap) {
         return new KafkaConnectContainer(imageName("cp-kafka-connect"), bootstrap, network);
+    }
+
+    public ConfluentServerConnectContainer createConfluentServerConnect(ConfluentServerContainer bootstrap) {
+        return new ConfluentServerConnectContainer(imageName("cp-server-connect"), bootstrap, network);
+    }
+
+    public ConfluentServerConnectContainer createConfluentServerConnect(Collection<String> confluentHubComponents, ConfluentServerContainer bootstrap) {
+        final var baseImageName = repository + "/cp-server-connect-base:" + tag;
+        final var image = KafkaConnectContainer.customImage(confluentHubComponents, baseImageName);
+        return (ConfluentServerConnectContainer) new ConfluentServerConnectContainer(image, bootstrap, network)
+                .withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
     }
 
     public KafkaConnectContainer createReplicator(KafkaContainer bootstrap) {

@@ -22,10 +22,17 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv(pToEKafka("confluent.license.topic.replication.factor"), "1");
         withEnv(pToEKafka("confluent.metadata.bootstrap.servers"), "BROKER://kafka:9092");
         withEnv("CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
-        withEnv("CONFLUENT_TELEMETRY_ENABLED", "false");
+        withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
+//        withEnv("CONFLUENT_TELEMETRY_ENABLED", "false");
         withEnv("KAFKA_CONFLUENT_TELEMETRY_ENABLED", "false");
-        withEnv("KAFKA_METRIC_REPORTERS", " io.confluent.metrics.reporter.ConfluentMetricsReporter");
-        withEnv("CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS", "kafka:9092");
+//        withEnv("CONFLUENT_METRICS_ENABLE", "true");
+//        withEnv("KAFKA_CONFLUENT_METRICS_ENABLE", "true");
+        withEnv("KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR", "1"); // also sets the _confluent-telemetry-metrics topic RF to 1
+      //  withEnv("KAFKA_METRIC_REPORTERS", " io.confluent.metrics.reporter.ConfluentMetricsReporter");
+        withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS", "kafka:9092");
+        withEnv(pToEKafka("confluent.balancer.enable"), "false");
+        withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1");
+
     }
 
     public int getMdsPort() {
@@ -83,6 +90,8 @@ public class ConfluentServerContainer extends KafkaContainer {
 
         withEnv(pToEKafka("confluent.authorizer.access.rule.providers"), "CONFLUENT,ZK_ACL");
 
+        // env var names starting with confluent will be taken over as well CONFLUENT
+        // TODO: double check in dub source code
         withEnv("CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL", SASL_PLAINTEXT);
         withEnv("CONFLUENT_METRICS_REPORTER_SASL_MECHANISM", PLAIN);
         withEnv("CONFLUENT_METRICS_REPORTER_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret));

@@ -2,6 +2,8 @@ package net.christophschubert.cp.testcontainers;
 
 import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.lifecycle.Startables;
@@ -46,8 +48,7 @@ public class CPServerTest {
 
     @Test
     public void startCPServerWithMdsLdap() throws ExecutionException, InterruptedException {
-        final Network network = Network.newNetwork();
-        final var factory = new CPTestContainerFactory(network);
+        final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap();
 
         final var cpServer = factory.createConfluentServer().enableRbac();
@@ -90,8 +91,7 @@ public class CPServerTest {
 
     @Test
     public void startRbacSchemaRegistry() throws ExecutionException, InterruptedException {
-        final Network network = Network.newNetwork();
-        final var factory = new CPTestContainerFactory(network);
+        final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap();
 
         final var cpServer = factory.createConfluentServer().enableRbac();
@@ -162,6 +162,8 @@ public class CPServerTest {
         given().auth().preemptive().basic(srUser, "wrong-password").when().get("subjects").then().statusCode(401);
         given().auth().preemptive().basic(srUser, "sr-user-secret").when().get("subjects").then().statusCode(200).
                 body("", is(Collections.emptyList())).log().all();
+
+
     }
 
     @Test
@@ -177,12 +179,86 @@ public class CPServerTest {
                 .enableRbac("http://kafka:8090", "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
         Startables.deepStart(List.of(cpServer, ldap, sr)).get();
 
+
+
+        ///////////////
+
+
+        RestAssured.port = cpServer.getMdsPort();
+
+        final String srUser = "sr-user";
+
+        final var id = given().
+                when().
+                get("/v1/metadata/id").
+                then().
+                statusCode(200).
+                log().all().extract().body().path("id").toString();
+
+        final var clusters = Map.of("clusters", Map.of("kafka-cluster", id, "schema-registry-cluster", "schema-registry"));
+
+        given().auth().preemptive().basic("alice", "alice-secret").
+                accept("application/json").
+                contentType("application/json").
+                body(clusters).
+                when().
+                post("/security/1.0/principals/User:"+ srUser +"/roles/SecurityAdmin").
+                then().statusCode(204).log().all();
+
+
+        final var scope = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id)),
+                "resourcePatterns", List.of(Map.of("resourceType", "Group","name", "schema-registry","patternType", "LITERAL"),
+                        Map.of("resourceType", "Topic","name", "_schemas","patternType", "LITERAL")));
+
+
+        given().auth().preemptive().basic("alice", "alice-secret").
+                accept("application/json").
+                contentType("application/json").
+                body(scope).
+                post("/security/1.0/principals/User:" + srUser +"/roles/ResourceOwner/bindings").
+                then().statusCode(204).log().all();
+
+        final var licenseScope = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id)),
+                "resourcePatterns", List.of(Map.of("resourceType", "Topic","name", "_confluent-license","patternType", "LITERAL")
+                ));
+
+        for (String role : List.of("DeveloperRead", "DeveloperWrite")) {
+            given().auth().preemptive().basic("alice", "alice-secret").
+                    accept("application/json").
+                    contentType("application/json").
+                    body(licenseScope).
+                    post(String.format("/security/1.0/principals/User:%s/roles/%s/bindings", srUser, role)).
+                    then().statusCode(204);
+        }
+
+
+
+        // alice is Kafka super-user, which does not help her when registering schemas (?!), let's give her the rights.
+        final var schemasScope = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id, "schema-registry-cluster", "schema-registry")),
+                "resourcePatterns", List.of(Map.of("resourceType", "Subject","name", "test","patternType", "LITERAL")
+                ));
+        for (String role : List.of("DeveloperRead", "DeveloperWrite")) {
+            given().auth().preemptive().basic("alice", "alice-secret").
+                    accept("application/json").
+                    contentType("application/json").
+                    body(schemasScope).
+                    post(String.format("/security/1.0/principals/User:%s/roles/%s/bindings", "alice", role)).
+                    then().log().all();
+        }
+
+        ////////////////
+
         RestAssured.port = sr.getMappedHttpPort();
 
         given().when().get("subjects").then().statusCode(401);
 
-        given().auth().preemptive().basic("alice", "alice-secret").when().get("subjects").then().statusCode(200).
+        given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").when().get("subjects").then().statusCode(200).
                 body("", is(Collections.emptyList())).log().all();
+
+        final Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
+        final var st = "{\"schema\": \"{ \\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test\\\", \\\"fields\\\": [ { \\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\" }, { \\\"type\\\": \\\"int\\\", \\\"name\\\": \\\"field2\\\" } ] }\" }";
+        System.out.println(st);
+        given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").body(st).when().post("subjects/test/versions").then().log().all();
     }
 
 
