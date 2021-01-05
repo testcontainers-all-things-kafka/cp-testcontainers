@@ -106,7 +106,7 @@ public class TestClients {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
         props.put(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
         props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
-        return new KafkaProducer<String, GenericRecord>(props);
+        return new KafkaProducer<>(props);
     }
 
     static public void basicReadWriteTest(String bootStrapServer) {
