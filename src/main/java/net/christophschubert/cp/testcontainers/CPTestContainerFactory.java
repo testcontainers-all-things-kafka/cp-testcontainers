@@ -34,21 +34,8 @@ public class CPTestContainerFactory {
     }
 
 
-    public KafkaContainer createCPServer() {
-        final int mdsPort= 8090;
-        final var imageName = imageName("cp-server").asCompatibleSubstituteFor("confluentinc/cp-kafka");
-        return new KafkaContainer(imageName)
-                .withNetwork(network)
-                .withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT)
-                .withEnv(pToEKafka("confluent.metadata.topic.replication.factor"), "1")
-                .withEnv(pToEKafka("confluent.license.topic.replication.factor"), "1")
-                .withEnv(pToEKafka("confluent.metadata.bootstrap.servers"), "BROKER://kafka:9092")
-                .withEnv("CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1")
-                .withEnv("CONFLUENT_TELEMETRY_ENABLED", "false")
-                .withEnv("KAFKA_CONFLUENT_TELEMETRY_ENABLED", "false")
-                .withEnv("KAFKA_METRIC_REPORTERS"," io.confluent.metrics.reporter.ConfluentMetricsReporter")
-                .withEnv("CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS", "kafka:9092");
-
+    public ConfluentServerContainer createConfluentServer() {
+        return (ConfluentServerContainer) new ConfluentServerContainer().withNetwork(network);
     }
 
     /**

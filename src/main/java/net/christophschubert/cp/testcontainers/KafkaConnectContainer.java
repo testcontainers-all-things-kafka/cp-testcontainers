@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer> {
 
     static final int defaultPort = 8083;
+    private static final String PROPERTY_PREFIX = "CONNECT";
 
     private void _configure(KafkaContainer bootstrap) {
         waitingFor(Wait.forHttp("/connectors"));
@@ -38,13 +39,13 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
     }
 
     KafkaConnectContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network) {
-        super(dockerImageName, bootstrap, network, defaultPort, "CONNECT");
+        super(dockerImageName, bootstrap, network, defaultPort, PROPERTY_PREFIX);
         _configure(bootstrap);
 
     }
 
     protected KafkaConnectContainer(ImageFromDockerfile image, KafkaContainer bootstrap, Network network){
-        super(image, bootstrap, network, defaultPort, "CONNECT");
+        super(image, bootstrap, network, defaultPort, PROPERTY_PREFIX);
         _configure(bootstrap);
     }
 

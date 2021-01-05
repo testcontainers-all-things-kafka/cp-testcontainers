@@ -19,10 +19,10 @@ public class CPServerTest {
     @Test
     public void createCPServerTest() {
         final var factory = new CPTestContainerFactory();
-        final var cpServer = factory.createCPServer();
+        final var cpServer = factory.createConfluentServer();
 
         cpServer.start();
-        RestAssured.port = cpServer.getMappedPort(8090);
+        RestAssured.port = cpServer.getMdsPort();
 
         given().
                 when().
@@ -48,16 +48,14 @@ public class CPServerTest {
     public void startCPServerWithMdsLdap() throws ExecutionException, InterruptedException {
         final Network network = Network.newNetwork();
         final var factory = new CPTestContainerFactory(network);
-        final var rbacFactory = new RbacEnabledContainerFactory(network);
         final var ldap = factory.createLdap();
 
-        final var cpServer = factory.createCPServer();
-        rbacFactory.configureContainerForRBAC(cpServer);
+        final var cpServer = factory.createConfluentServer().enableRbac();
 //        cpServer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
 
         Startables.deepStart(List.of(ldap, cpServer)).get();
 
-        RestAssured.port = cpServer.getMappedPort(8090);
+        RestAssured.port = cpServer.getMdsPort();
 
         given().
                 when().
@@ -94,15 +92,14 @@ public class CPServerTest {
     public void startRbacSchemaRegistry() throws ExecutionException, InterruptedException {
         final Network network = Network.newNetwork();
         final var factory = new CPTestContainerFactory(network);
-        final var rbacFactory = new RbacEnabledContainerFactory(network);
         final var ldap = factory.createLdap();
 
-        final var cpServer = factory.createCPServer();
-        rbacFactory.configureContainerForRBAC(cpServer);
+        final var cpServer = factory.createConfluentServer().enableRbac();
+
 //        cpServer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         Startables.deepStart(List.of(cpServer, ldap)).get();
 
-        RestAssured.port = cpServer.getMappedPort(8090);
+        RestAssured.port = cpServer.getMdsPort();
 
         final String srUser = "sr-user";
 
@@ -153,8 +150,10 @@ public class CPServerTest {
         //it seems that the documentation at https://docs.confluent.io/platform/current/security/rbac/rbac-config-using-rest-api.html
         // has a mistake: rights for topics are not mentioned
 
-        final var sr = factory.createSchemaRegistry(cpServer).withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
-        rbacFactory.configureContainerForRBAC(sr);
+        final var sr = factory.createSchemaRegistry(cpServer)
+                .enableRbac()
+                .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
+
         sr.start();
 
         RestAssured.port = sr.getMappedHttpPort();
@@ -169,14 +168,13 @@ public class CPServerTest {
     public void superUserShouldStartSRWithoutBinding() throws ExecutionException, InterruptedException {
         final Network network = Network.newNetwork();
         final var factory = new CPTestContainerFactory(network);
-        final var rbacFactory = new RbacEnabledContainerFactory(network);
         final var ldap = factory.createLdap();
 
-        final var cpServer = factory.createCPServer();
-        rbacFactory.configureContainerForRBAC(cpServer);
+        final var cpServer = factory.createConfluentServer().enableRbac();
 
-        final var sr = factory.createSchemaRegistry(cpServer);
-        rbacFactory.configureContainerForRBAC(sr, "alice", "alice-secret");
+        final var sr = factory
+                .createSchemaRegistry(cpServer)
+                .enableRbac("http://kafka:8090", "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
         Startables.deepStart(List.of(cpServer, ldap, sr)).get();
 
         RestAssured.port = sr.getMappedHttpPort();
