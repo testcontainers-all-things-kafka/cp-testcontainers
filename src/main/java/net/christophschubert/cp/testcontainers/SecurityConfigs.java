@@ -8,7 +8,7 @@ public class SecurityConfigs {
 
     public static String oauthJaas(String username, String password, String url) {
         return String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                " username=\"%s\" password=\"%s\" metadataServerUrls=\"%s\";",
+                "username=\"%s\" password=\"%s\" metadataServerUrls=\"%s\";",
         username, password, url);
     }
 }

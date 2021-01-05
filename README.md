@@ -60,6 +60,7 @@ So far, the following components can be configured to use RBAC:
 
 - Confluent Server
 - Confluent Schema Registry
+- Kafka Connect (without secret registry)
 
 
 ## Packages

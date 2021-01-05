@@ -2,8 +2,6 @@ package net.christophschubert.cp.testcontainers;
 
 import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.TestClients;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.lifecycle.Startables;
@@ -255,7 +253,6 @@ public class CPServerTest {
         given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").when().get("subjects").then().statusCode(200).
                 body("", is(Collections.emptyList())).log().all();
 
-        final Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
         final var st = "{\"schema\": \"{ \\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test\\\", \\\"fields\\\": [ { \\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\" }, { \\\"type\\\": \\\"int\\\", \\\"name\\\": \\\"field2\\\" } ] }\" }";
         System.out.println(st);
         given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").body(st).when().post("subjects/test/versions").then().log().all();
