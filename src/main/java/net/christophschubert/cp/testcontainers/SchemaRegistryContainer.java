@@ -33,10 +33,10 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
 
         prepareCertificates();
         withEnv(CUB_CLASSPATH, "/usr/share/java/confluent-security/schema-registry/*:/usr/share/java/schema-registry/*:/usr/share/java/cp-base-new/*");
-        withProperty("kafkastore.security.protocol", SASL_PLAINTEXT);
-        withProperty("kafkastore.sasl.mechanism", OAUTHBEARER);
-        withProperty("kafkastore.sasl.login.callback.handler.class", "io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler");
-        withProperty("kafkastore.sasl.jaas.config", oauthJaas(srPrincipal, srSecret, mdsBootstrap));
+
+        //configure access to broker via OAuth
+        withProperties("kafkastore", oAuthWithTokenCallbackHandlerProperties(srPrincipal, srSecret, mdsBootstrap));
+
         withProperty("debug", true);
         withProperty("schema.registry.resource.extension.class", "io.confluent.kafka.schemaregistry.security.SchemaRegistrySecurityResourceExtension");
         withProperty("confluent.schema.registry.authorizer.class", "io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer");

@@ -6,6 +6,8 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.Map;
+
 /**
  * Base class for the Confluent platform components exposing a (REST) HTTP port.
  */
@@ -42,6 +44,15 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
         return this;
     }
 
+    CPTestContainer<SELF> withProperties(Map<String, Object> properties) {
+        properties.forEach(this::withProperty);
+        return this;
+    }
+
+    CPTestContainer<SELF> withProperties(String prefix, Map<String, Object> properties) {
+        properties.forEach((k, v) -> withProperty(prefix + "." + k, v));
+        return this;
+    }
 
     public String getBaseUrl() {
         return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(httpPort));
