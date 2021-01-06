@@ -255,7 +255,7 @@ public class CPServerTest {
 
         final var st = "{\"schema\": \"{ \\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test\\\", \\\"fields\\\": [ { \\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\" }, { \\\"type\\\": \\\"int\\\", \\\"name\\\": \\\"field2\\\" } ] }\" }";
         System.out.println(st);
-        given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").body(st).when().post("subjects/test/versions").then().log().all();
+        given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").body(st).when().post("subjects/test/versions").then().log().all().statusCode(200).body("id", is(1));
     }
 
 
