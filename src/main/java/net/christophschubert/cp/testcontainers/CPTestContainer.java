@@ -58,4 +58,16 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
     public String getInternalBaseUrl() {
         return String.format("http://%s:%d", getNetworkAliases().get(0), httpPort);
     }
+
+    //needed for RBAC enabled components
+    private final String containerCertPath = "/tmp/conf";
+    private final String localCertPath = "src/main/resources/certs";
+
+    protected void prepareCertificates() {
+        withFileSystemBind(localCertPath, containerCertPath);
+    }
+
+    protected String getPublicKeyPath() {
+        return containerCertPath + "/public.pem";
+    }
 }

@@ -82,7 +82,7 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv(mdsPrefix("authentication.method"), "BEARER");
         withEnv(mdsPrefix("listeners"), "http://0.0.0.0:8090");
         withEnv(mdsPrefix("advertised.listeners"), "http://kafka:8090");
-        withEnv(mdsPrefix("toker.auth.enable"), "true");
+        withEnv(mdsPrefix("token.auth.enable"), "true");
         withEnv(mdsPrefix("token.max.lifetime.ms"), "3600000");
         withEnv(mdsPrefix("token.signature.algorithm"), "RS256");
         withEnv(mdsPrefix("token.key.path"), containerCertPath + "/keypair.pem");
