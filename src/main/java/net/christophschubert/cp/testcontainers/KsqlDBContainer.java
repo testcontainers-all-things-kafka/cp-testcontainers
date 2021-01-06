@@ -23,7 +23,7 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         withProperty("bootstrap.servers", getInternalBootstrap(bootstrap));
         withProperty("listeners", getHttpPortListener());
         withEnv("KSQL_CACHE_MAX_BYTES_BUFFERING", "0");
-        waitingFor(Wait.forHttp("/"));
+        waitingFor(Wait.forHttp("/").forStatusCode(200).forStatusCode(401));
     }
 
     /**
@@ -99,21 +99,26 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         withProperty("confluent.schema.registry.authorizer.class", "io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer");
         withProperty("rest.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler");
 
+
+
         withProperties(confluentMdsSettings(ksqlPrincipal, ksqlSecret, mdsBootstrap));
         withProperty("public.key.path", getPublicKeyPath());
+        // Venki's page (https://confluentinc.atlassian.net/wiki/spaces/~730978534/pages/1402262129/RBAC+Implementation)
+        // has this setting:
+//        withProperty("confluent.metadata.public.key.path", getPublicKeyPath());
 
         // TODO: this property was configures in some of the sources: a google search yields no results: double-check
         withProperty("confluent.metadata.basic.auth.credentials.provider", USER_INFO);
         //access to connect seems to be missing
-
+        withEnv("KSQL_LOG4J_ROOT_LOGLEVEL", "INFO");
 
         withProperty("ksql.schema.registry.basic.auth.credentials.source", USER_INFO); //not mentioned in https://docs.confluent.io/platform/current/security/rbac/ksql-rbac.html
         withProperty("ksql.schema.registry.basic.auth.user.info",ksqlPrincipal + ":" + ksqlSecret);
 
+        // this seems to be a stabler way to find out whether a ksqlDB cluster is ready
+        // maybe use this as the default health check
+        waitingFor(Wait.forLogMessage(".*INFO Server up and running.*", 1));
+
         return this;
-        //additional settings:
-        //    KSQL_LOG4J_ROOT_LOGLEVEL: TRACE
     }
-
-
 }

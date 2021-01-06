@@ -41,6 +41,7 @@ public class ConnectRbacTest {
         given().auth().preemptive().basic(a, as)
                 .body(clusters)
                 .contentType("application/json")
+                .log().all()
                 .when()
                 .post("/security/1.0/principals/User:connect-principal/roles/SecurityAdmin")
                 .then().log().all().statusCode(204);
