@@ -6,6 +6,9 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import static net.christophschubert.cp.testcontainers.ContainerConfigs.CUB_CLASSPATH;
+import static net.christophschubert.cp.testcontainers.SecurityConfigs.*;
+
 /**
  * Test-container instance of ksqlDB.
  */
@@ -16,9 +19,9 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
     KsqlDBContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network) {
         super(dockerImageName, bootstrap, network, defaultPort, "KSQL");
 
-        withEnv("SCHEMA_REGISTRY_HOST_NAME", "ksqldb-server");
-        withEnv("KSQL_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
-        withEnv("KSQL_LISTENERS", getHttpPortListener());
+        withProperty("host.name", "ksqldb-server");
+        withProperty("bootstrap.servers", getInternalBootstrap(bootstrap));
+        withProperty("listeners", getHttpPortListener());
         withEnv("KSQL_CACHE_MAX_BYTES_BUFFERING", "0");
         waitingFor(Wait.forHttp("/"));
     }
@@ -36,7 +39,7 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
 
     /**
      * Prepare ksqlDB container to start in headless mode with the provided query-file.
-     *
+     * <p>
      * No HTTP port will be opened when starting in headless mode.
      *
      * @param queriesFile the path to the file
@@ -73,4 +76,44 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         dependsOn(connectContainer);
         return this;
     }
+
+
+    public KsqlDBContainer enableRbac(String mdsBootstrap, String ksqlPrincipal, String ksqlSecret) {
+        //TODO: should check if this causes any errors with some of the base images
+        prepareCertificates();
+        withEnv(CUB_CLASSPATH, "/usr/share/java/confluent-security/ksql/*:/usr/share/java/ksqldb-server/*:/usr/share/java/cp-base-new/*");
+        withProperty("ksql.security.extension.class", "io.confluent.ksql.security.KsqlConfluentSecurityExtension");
+
+        //configure access to broker
+        withProperties(oAuthWithTokenCallbackHandlerProperties(ksqlPrincipal, ksqlSecret, mdsBootstrap));
+
+//       # Enable KSQL OAuth authentication
+        // TODO: why do we have these two settings?
+        withProperty("rest.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler");
+        withProperty("websocket.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler");
+        withProperty("oauth.jwt.public.key.path", getPublicKeyPath());
+        // TODO: does this property still exists? Double-check
+        withProperty("confluent.metadata.public.key.path", getPublicKeyPath());
+        withProperty("ksql.authentication.plugin.class", "io.confluent.ksql.security.VertxBearerOrBasicAuthenticationPlugin");
+        // TODO: I should double-check all the setting here with the official docs
+        withProperty("confluent.schema.registry.authorizer.class", "io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer");
+        withProperty("rest.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler");
+
+        withProperties(confluentMdsSettings(ksqlPrincipal, ksqlSecret, mdsBootstrap));
+        withProperty("public.key.path", getPublicKeyPath());
+
+        // TODO: this property was configures in some of the sources: a google search yields no results: double-check
+        withProperty("confluent.metadata.basic.auth.credentials.provider", USER_INFO);
+        //access to connect seems to be missing
+
+
+        withProperty("ksql.schema.registry.basic.auth.credentials.source", USER_INFO); //not mentioned in https://docs.confluent.io/platform/current/security/rbac/ksql-rbac.html
+        withProperty("ksql.schema.registry.basic.auth.user.info",ksqlPrincipal + ":" + ksqlSecret);
+
+        return this;
+        //additional settings:
+        //    KSQL_LOG4J_ROOT_LOGLEVEL: TRACE
+    }
+
+
 }

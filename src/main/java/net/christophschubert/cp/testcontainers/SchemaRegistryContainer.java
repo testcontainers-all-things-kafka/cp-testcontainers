@@ -41,11 +41,12 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         withProperty("schema.registry.resource.extension.class", "io.confluent.kafka.schemaregistry.security.SchemaRegistrySecurityResourceExtension");
         withProperty("confluent.schema.registry.authorizer.class", "io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer");
         withProperty("rest.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler");
-        withProperty("confluent.metadata.bootstrap.server.urls", mdsBootstrap);
-        withProperty("confluent.metadata.http.auth.credentials.provider", BASIC);
-        //TODO: is user_info missing? double check?
-        withProperty("confluent.metadata.basic.auth.user.info", srPrincipal + ":" + srSecret);
-        withProperty("public.key.path", getPublicKeyPath());
+        //TODO: question: the docs at https://docs.confluent.io/platform/current/schema-registry/security/rbac-schema-registry.html#schemaregistry-rbac
+        // mention to use `confluent.schema.registry.auth.mechanism=JETTY_AUTH` as the recommended auth mechanism when using RBAC
+
+        withProperties(confluentMdsSettings(srPrincipal, srSecret, mdsBootstrap));
+
+        withProperty("public.key.path", getPublicKeyPath()); //
 
         // TODO: compare with
         // https://github.com/confluentinc/cp-demo/blob/6.0.1-post/docker-compose.yml

@@ -16,6 +16,7 @@ public class SecurityConfigs {
     }
 
     static public Map<String, Object> oAuthWithTokenCallbackHandlerProperties(String principal, String secret, String mdsBootstrap) {
+        assert(mdsBootstrap.startsWith("http"));
         return Map.of(
                 "security.protocol", SASL_PLAINTEXT,
                 "sasl.mechanism", OAUTHBEARER,
@@ -23,4 +24,15 @@ public class SecurityConfigs {
                 "sasl.jaas.config", oauthJaas(principal, secret, mdsBootstrap)
         );
     }
+
+    static public Map<String, Object> confluentMdsSettings(String principal, String secret, String mdsBootstrap) {
+        assert(mdsBootstrap.startsWith("http"));
+        return Map.of(
+                "confluent.metadata.bootstrap.server.urls", mdsBootstrap,
+                "confluent.metadata.http.auth.credentials.provider", BASIC,
+                "confluent.metadata.basic.auth.user.info", principal + ":" + secret
+        );
+        //TODO some of the different examples still mention USER_INFO, double check whether that's still necessary.
+    }
+
 }

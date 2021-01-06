@@ -6,6 +6,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.Comparator;
 import java.util.Map;
 
 /**
@@ -80,5 +81,14 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
 
     protected String getPublicKeyPath() {
         return containerCertPath + "/public.pem";
+    }
+
+    //tools for debugging
+
+    /**
+     * Prints the environment variables of the container in a format suitable for inclusion in a docker-compose.yaml.
+     */
+    public void prettyPrintEnvs() {
+        getEnvMap().entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)).forEach(e -> System.out.printf("%s: '%s'%n", e.getKey(), e.getValue()));
     }
 }
