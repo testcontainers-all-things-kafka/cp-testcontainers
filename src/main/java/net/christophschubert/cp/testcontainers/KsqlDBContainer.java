@@ -99,13 +99,8 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         withProperty("confluent.schema.registry.authorizer.class", "io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer");
         withProperty("rest.servlet.initializor.classes", "io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler");
 
-
-
         withProperties(confluentMdsSettings(ksqlPrincipal, ksqlSecret, mdsBootstrap));
         withProperty("public.key.path", getPublicKeyPath());
-        // Venki's page (https://confluentinc.atlassian.net/wiki/spaces/~730978534/pages/1402262129/RBAC+Implementation)
-        // has this setting:
-//        withProperty("confluent.metadata.public.key.path", getPublicKeyPath());
 
         // TODO: this property was configures in some of the sources: a google search yields no results: double-check
         withProperty("confluent.metadata.basic.auth.credentials.provider", USER_INFO);

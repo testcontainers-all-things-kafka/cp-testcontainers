@@ -11,12 +11,16 @@ public class SecurityConfigs {
 
     public static String oauthJaas(String username, String password, String url) {
         return String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                "username=\"%s\" password=\"%s\" metadataServerUrls=\"%s\";",
-        username, password, url);
+                        "username=\"%s\" password=\"%s\" metadataServerUrls=\"%s\";",
+                username, password, url);
+    }
+
+    public static String plainJaas(String username, String password) {
+        return String.format("org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";", username, password);
     }
 
     static public Map<String, Object> oAuthWithTokenCallbackHandlerProperties(String principal, String secret, String mdsBootstrap) {
-        assert(mdsBootstrap.startsWith("http"));
+        assert (mdsBootstrap.startsWith("http"));
         return Map.of(
                 "security.protocol", SASL_PLAINTEXT,
                 "sasl.mechanism", OAUTHBEARER,
@@ -25,8 +29,16 @@ public class SecurityConfigs {
         );
     }
 
+    static public Map<String, Object> plainJaasProperties(String principal, String password) {
+        return Map.of(
+                "sasl.mechanism", PLAIN,
+                "security.protocol", SASL_PLAINTEXT,
+                "sasl.jaas.config", plainJaas(principal, password)
+        );
+    }
+
     static public Map<String, Object> confluentMdsSettings(String principal, String secret, String mdsBootstrap) {
-        assert(mdsBootstrap.startsWith("http"));
+        assert (mdsBootstrap.startsWith("http"));
         return Map.of(
                 "confluent.metadata.bootstrap.server.urls", mdsBootstrap,
                 "confluent.metadata.http.auth.credentials.provider", BASIC,

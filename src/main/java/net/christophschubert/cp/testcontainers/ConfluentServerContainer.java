@@ -14,6 +14,9 @@ import static net.christophschubert.cp.testcontainers.SecurityConfigs.SASL_PLAIN
 public class ConfluentServerContainer extends KafkaContainer {
     final int mdsPort = 8090;
 
+    final String admin = "admin";
+    final String adminSecret = "admin-secret";
+
     public ConfluentServerContainer() {
         super(DockerImageName.parse("confluentinc/cp-server:6.0.1").asCompatibleSubstituteFor("confluentinc/cp-kafka"));
         withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT);
@@ -46,8 +49,6 @@ public class ConfluentServerContainer extends KafkaContainer {
      */
     public ConfluentServerContainer enableRbac() {
 
-        final String admin = "admin";
-        final String adminSecret = "admin-secret";
         final String containerCertPath = "/tmp/conf";
         final String localCertPath = "src/main/resources/certs";
         final String brokerNetworkAlias = "kafka";
@@ -73,6 +74,8 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", PLAIN);
         withEnv(pToEKafka("listener.name.plaintext.plain.sasl.server.callback.handler.class"), "io.confluent.security.auth.provider.ldap.LdapAuthenticateCallbackHandler");
         withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret));
+//        withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", "org.apache.kafka.common.security.plain.PlainLoginModule required;");
+        // these docs: https://docs.confluent.io/platform/current/kafka/authentication_sasl/client-authentication-ldap.html only provide "org.apache.kafka.common.security.plain.PlainLoginModule required;"
         // set up authorizer
         withEnv(pToEKafka("authorizer.class.name"), "io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer");
         // configure MDS

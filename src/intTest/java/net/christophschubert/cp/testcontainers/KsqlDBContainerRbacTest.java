@@ -1,17 +1,19 @@
 package net.christophschubert.cp.testcontainers;
 
 import io.restassured.RestAssured;
-import net.christophschubert.cp.testcontainers.util.MdsRestWrappers;
+import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import org.junit.Test;
 import org.testcontainers.lifecycle.Startables;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import static io.restassured.RestAssured.given;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ClusterType.KsqlCluster;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Group;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Topic;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.ResourceOwner;
 import static org.hamcrest.CoreMatchers.is;
 
 public class KsqlDBContainerRbacTest {
@@ -34,62 +36,46 @@ public class KsqlDBContainerRbacTest {
         // configure role-bindings
         // alice is our trusted user
 
-        RestAssured.port = kafka.getMdsPort();
-
-        final var id = MdsRestWrappers.getKafkaClusterId();
-        System.out.println(id);
-
         // alice is our trusted admin
         final var a = "alice";
         final var as = "alice-secret";
+        RestAssured.port = kafka.getMdsPort();
 
-        final var clusters = Map.of("clusters",
-                Map.of("kafka-cluster", id,"ksql-cluster", "ksql"));
-
-        // grant connect principal the security admin role on the connect cluster
-        given().auth().preemptive().basic(a, as)
-                .body(clusters)
-                .contentType("application/json")
-                .log().all()
-                .when()
-                .post("/security/1.0/principals/User:ksql/roles/SecurityAdmin")
-                .then().log().all().statusCode(204);
-
-        var scope1 = Map.of("scope", clusters,
-                "resourcePatterns", List.of(
-                        Map.of("resourceType", "KsqlCluster", "name", "ksql-cluster")
-                ));
+        final var mdsWrapper = new MdsRestWrapper(kafka.getMdsPort(), a, as);
+        final var id = mdsWrapper.getKafkaClusterId();
+        System.out.println(id);
 
 
-        given().auth().preemptive().basic(a, as)
-                .body(scope1)
-                .contentType("application/json")
-                .when()
-                .post("/security/1.0/principals/User:ksql/roles/ResourceOwner/bindings")
-                .then().log().all().statusCode(204);
+        mdsWrapper.grantRoleOnCluster("ksql",
+                MdsRestWrapper.ClusterRole.SecurityAdmin,
+                KsqlCluster,
+                "ksql");
 
+        mdsWrapper.grantRoleOnResource("ksql", ResourceOwner, KsqlCluster, "ksql-cluster", MdsRestWrapper.ResourceType.KsqlCluster, "ksql-cluster");
+        // this call above replaces the following
+        //       final var clusters = Map.of("clusters",
+        //                Map.of("kafka-cluster", id,"ksql-cluster", "ksql"));
+        //        var scope1 = Map.of("scope", clusters,
+//                "resourcePatterns", List.of(
+//                        Map.of("resourceType", "KsqlCluster", "name", "ksql-cluster")
+//                ));
+//        given().auth().preemptive().basic(a, as)
+//                .body(scope1)
+//                .contentType("application/json")
+//                .when()
+//                .post("/security/1.0/principals/User:ksql/roles/ResourceOwner/bindings")
+//                .then().log().all().statusCode(204);
+//
 
         // it seems to me that the REST calls on https://docs.confluent.io/platform/current/security/rbac/rbac-config-using-rest-api.html
         // are not correct for ksql
-        var res = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id)),
-                "resourcePatterns", List.of(
-                        Map.of("resourceType", "Group","name", "_confluent-ksql-ksql","patternType", "PREFIXED"),
-                        Map.of("resourceType", "Topic","name", "_confluent-ksql-ksql","patternType", "PREFIXED"),
-                        Map.of("resourceType", "Topic","name", "ksqlksql_processing_log","patternType", "LITERAL"),
-                        Map.of("resourceType", "Topic","name", "ksql","patternType", "PREFIXED")
-//                        Map.of("resourceType", "Topic","name", "datagen","patternType", "LITERAL")
-                ));
 
-        given().auth().preemptive().basic(a, as)
-                .body(res)
-                .contentType("application/json")
-                .when()
-                .post("/security/1.0/principals/User:ksql/roles/ResourceOwner/bindings")
-                .then().log().all().statusCode(204);
-
+        mdsWrapper.grantRoleOnKafkaResource("ksql", ResourceOwner, Group, "_confluent-ksql-ksql", true);
+        mdsWrapper.grantRoleOnKafkaResource("ksql", ResourceOwner, Topic, "_confluent-ksql-ksql", true);
+        mdsWrapper.grantRoleOnKafkaResource("ksql", ResourceOwner, Topic, "ksqlksql_processing_log");
+        mdsWrapper.grantRoleOnKafkaResource("ksql", ResourceOwner, Topic, "ksql", true); // should change this
 
         ksqlDB.start();
-
 
         RestAssured.port = ksqlDB.getFirstMappedPort();
 
@@ -101,4 +87,5 @@ public class KsqlDBContainerRbacTest {
                 .statusCode(200)
                 .body("isHealthy", is(true));
     }
+
 }

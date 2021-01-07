@@ -1,7 +1,12 @@
 package net.christophschubert.cp.testcontainers;
 
 import io.restassured.RestAssured;
+import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.SaslAuthenticationException;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.lifecycle.Startables;
@@ -9,11 +14,13 @@ import org.testcontainers.lifecycle.Startables;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Topic;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.ResourceOwner;
+import static org.hamcrest.CoreMatchers.*;
 
 public class CPServerTest {
     @Test
@@ -258,5 +265,57 @@ public class CPServerTest {
         given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").body(st).when().post("subjects/test/versions").then().log().all().statusCode(200).body("id", is(1));
     }
 
+    // after enableRbac is called, clients should be able to authenticate towards Kafka with their LDAP credentials
+    @Test
+    public void superUserCanProducerUsingSaslPlain() throws ExecutionException, InterruptedException {
+        final var factory = new CPTestContainerFactory();
+        final var ldap = factory.createLdap(Set.of("alice", "mds", "producer", "consumer"));
 
+        final var cpServer = factory.createConfluentServer().enableRbac();
+
+        Startables.deepStart(List.of(cpServer, ldap)).get();
+
+        final var topicName = "testTopic";
+
+        final var producer = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("alice", "alice-secret"));
+        final var recordMetadata = producer.send(new ProducerRecord<>(topicName, "hello-world")).get();
+        Assert.assertThat(0L, is(recordMetadata.offset()));
+        System.out.println(recordMetadata);
+        final var producerNonAuth = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("alice", "alice-wrongpassword"));
+        try {
+            final var _unused = producerNonAuth.send(new ProducerRecord<>(topicName, "hello-world")).get();
+            System.out.println(_unused);
+        } catch (ExecutionException e) {
+            Assert.assertThat(e.getCause(), instanceOf(SaslAuthenticationException.class));
+            return;
+        }
+        Assert.fail();
+    }
+
+    @Test
+    public void ldapAuthenticationWorksForClients() throws ExecutionException, InterruptedException {
+        final var factory = new CPTestContainerFactory();
+        final var ldap = factory.createLdap(Set.of("alice", "mds", "producer", "consumer"));
+
+        final var cpServer = factory.createConfluentServer().enableRbac();
+        Startables.deepStart(List.of(cpServer, ldap)).get();
+        final var topicName = "testTopic";
+
+        final var producer = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("producer", "producer-secret"));
+
+        try {
+            producer.send(new ProducerRecord<>(topicName, "hello-world")).get();
+            Assert.fail(); // fail if no exception was thrown
+        } catch (ExecutionException e) {
+            Assert.assertThat(e.getCause(), instanceOf(TopicAuthorizationException.class));
+        }
+
+        var mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), "alice", "alice-secret");
+        //should grant resource-owner as principal need rights to create previously non-existing topic
+        mdsWrapper.grantRoleOnKafkaResource("producer", ResourceOwner, Topic, topicName);
+
+        final var recordMetadata = producer.send(new ProducerRecord<>(topicName, "hello-world")).get();
+        Assert.assertThat(0L, is(recordMetadata.offset()));
+        System.out.println(recordMetadata);
+    }
 }
