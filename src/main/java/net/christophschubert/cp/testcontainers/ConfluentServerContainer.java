@@ -24,6 +24,13 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv(pToEKafka("confluent.metadata.topic.replication.factor"), "1");
         withEnv(pToEKafka("confluent.license.topic.replication.factor"), "1");
         withEnv(pToEKafka("confluent.metadata.bootstrap.servers"), "BROKER://kafka:9092");
+
+        //TODO: replicate to Kafka container: needed to start transactional producer
+        withEnv(pToEKafka("transaction.state.log.replication.factor"), "1");
+        withEnv(pToEKafka("transaction.state.log.min.isr"), "1");
+        withEnv(pToEKafka("offsets.topic.replication.factor"), "1");
+
+
         withEnv("CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
         withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
 //        withEnv("CONFLUENT_TELEMETRY_ENABLED", "false");
@@ -55,6 +62,7 @@ public class ConfluentServerContainer extends KafkaContainer {
 
         withNetworkAliases(brokerNetworkAlias);
         withFileSystemBind(localCertPath, containerCertPath);  //copy certificates
+
         withEnv(pToEKafka("super.users"), "User:admin;User:mds;User:alice");
         // KafkaContainer configures two listeners: PLAINTEXT (port 9093), and BROKER (port 9092), BROKER is used for the
         // internal communication on the docker network. We need to configure two SASL mechanisms on BROKER.
@@ -86,7 +94,7 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv(mdsPrefix("listeners"), "http://0.0.0.0:8090");
         withEnv(mdsPrefix("advertised.listeners"), "http://kafka:8090");
         withEnv(mdsPrefix("token.auth.enable"), "true");
-        withEnv(mdsPrefix("token.max.lifetime.ms"), "3600000");
+        withEnv(mdsPrefix("token.max.lifetime.ms"), "7200000"); //TODO: had to set it to 2 hours to prevent re-login problems: look into this!
         withEnv(mdsPrefix("token.signature.algorithm"), "RS256");
         withEnv(mdsPrefix("token.key.path"), containerCertPath + "/keypair.pem");
         withEnv(mdsPrefix("public.key.path"), containerCertPath + "/public.pem");

@@ -6,7 +6,7 @@ import java.util.Map;
 import static io.restassured.RestAssured.given;
 
 public class MdsRestWrapper {
-    // all methods in the class assume that MDS is listening on localhost and that
+    // all methods in the class assume that MDS is listening on localhost
 
     //
     public enum ClusterRole {
@@ -52,7 +52,10 @@ public class MdsRestWrapper {
     }
 
     public enum KafkaResourceType {
-        Topic("Topic"), Group("Group");
+        Cluster("Cluster"),
+        Group("Group"),
+        Topic("Topic"),
+        TransactionalId("TransactionalId");
 
         final String resourceType;
 
@@ -62,7 +65,8 @@ public class MdsRestWrapper {
     }
 
     public enum ResourceType {
-        KsqlCluster("KsqlCluster");
+        KsqlCluster("KsqlCluster"),
+        KsqlClusterResource("KsqlCluster"); // to increase readability
 
         final String resourceType;
         ResourceType(String resourceType) {
@@ -120,6 +124,19 @@ public class MdsRestWrapper {
                 body(clusters).
                 when().
                 post("/security/1.0/principals/User:" + principal + "/roles/" + role).
+                then().log().all().statusCode(204);
+    }
+
+    public void grantRoleOnKafkaCluster(String principal, ClusterRole role) {
+        final var clusters = Map.of("clusters", Map.of("kafka-cluster", kafkaClusterId));
+
+        given().auth().preemptive().basic(mdsUser, mdsUserPassword).
+                accept("application/json").
+                contentType("application/json").
+                port(port).
+                body(clusters).
+                when().
+                post("/security/1.0/principals/User:" + principal + "/roles/" + role.roleName).
                 then().log().all().statusCode(204);
     }
 
