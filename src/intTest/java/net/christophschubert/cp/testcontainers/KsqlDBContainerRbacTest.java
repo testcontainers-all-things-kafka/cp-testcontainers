@@ -28,6 +28,8 @@ public class KsqlDBContainerRbacTest {
     static final String ksql = "ksql";
     static final String ksqlSecret = "ksql-secret";
 
+    static final String ksqlMediaType = "application/vnd.ksql.v1+json";
+
     // starts a RBAC enabled CP server instance and ksql with minimal role bindings for it to start up.
     @Test
     public void setupKsqlDB() {
@@ -93,8 +95,6 @@ public class KsqlDBContainerRbacTest {
 
 
         final String inputTopic = "orders";
-        final String outputTopic = "output";
-
 
         ksqlDB.start();
         RestAssured.port = ksqlDB.getFirstMappedPort();
@@ -106,47 +106,29 @@ public class KsqlDBContainerRbacTest {
                 .statusCode(200)
                 .body("isHealthy", is(true));
 
-        // assign roles for interactive queries to bob: bob wants to perform an aggregation of data from the inputTopic
-
         final String bob = "bob";
 
-
-
-
-        final var producer = TestClients.createProducer(
-                kafka.getBootstrapServers()//,
-//                SecurityConfigs.plainJaasProperties("producer", "producer-secret")
-        );
+        final var producer = TestClients.createProducer(kafka.getBootstrapServers());
 
         ObjectMapper mapper = new ObjectMapper();
 
         producer.send(new ProducerRecord<>(inputTopic, "milk", mapper.writeValueAsString(Map.of("product", "milk", "quantity", 10))));
         producer.send(new ProducerRecord<>(inputTopic, "juice", mapper.writeValueAsString(Map.of("product", "juice", "quantity", 5))));
         producer.send(new ProducerRecord<>(inputTopic, "milk", mapper.writeValueAsString(Map.of("product", "milk", "quantity", 8))));
-        final var recordMetadata = producer.send(new ProducerRecord<>(inputTopic, "juice", mapper.writeValueAsString(Map.of("product", "juice", "quantity", 7)))).get();
-        System.out.println(recordMetadata);
+        producer.send(new ProducerRecord<>(inputTopic, "juice", mapper.writeValueAsString(Map.of("product", "juice", "quantity", 7)))).get();
         producer.flush();
 
+        final var body = Map.of("ksql", "CREATE STREAM orders (product varchar, quantity bigint) WITH (KAFKA_TOPIC = 'orders', VALUE_FORMAT = 'JSON');");
 
-        final var ksqlMediaType = "application/vnd.ksql.v1+json";
-
-        final var body = Map.of("ksql", "CREATE STREAM orders (product varchar, quantity bigint) WITH (KAFKA_TOPIC = 'orders', VALUE_FORMAT = 'JSON');",
-                "streamsProperties", Map.of("ksql.streams.auto.offset.reset", "earliest"));
-
-//        final var body = Map.of("ksql", "SHOW all topics;",
-//                "streamsProperties", Map.of("ksql.streams.auto.offset.reset", "earliest"));
-
-
-        given().auth().preemptive().basic(bob, "bob-secret")
+        given()
+                .auth().preemptive().basic(bob, "bob-secret")
                 .accept(ksqlMediaType)
                 .contentType(ksqlMediaType)
                 .body(body)
                 .when()
-                .post("/ksql")
+                    .post("/ksql")
                 .then()
-                .log().all();
-
-
+                    .log().all();
     }
 
     @Test
@@ -239,50 +221,52 @@ public class KsqlDBContainerRbacTest {
         System.out.println(recordMetadata);
         producer.flush();
 
-        final var ksqlMediaType = "application/vnd.ksql.v1+json";
+
 
         final var body = Map.of("ksql", "CREATE STREAM orders (product varchar, quantity bigint) WITH (KAFKA_TOPIC = 'orders', VALUE_FORMAT = 'JSON');",
                 "streamsProperties", Map.of("ksql.streams.auto.offset.reset", "earliest"));
 
-        given().auth().preemptive().basic(bob, bob + "-secret")
+        given()
+                .auth().preemptive().basic(bob, bob + "-secret")
                 .accept(ksqlMediaType)
                 .contentType(ksqlMediaType)
                 .body(body)
                 .when()
-                .post("/ksql")
+                    .post("/ksql")
                 .then()
-                .log().all().statusCode(200);
+                    .log().all()
+                    .statusCode(200);
 
         final var body2 = Map.of("ksql", "CREATE table aggs WITH (KAFKA_TOPIC = 'output', VALUE_FORMAT = 'JSON', partitions=1) as select product, sum(quantity) from orders group by product ;",
                 "streamsProperties", Map.of("ksql.streams.auto.offset.reset", "earliest"));
 
-
-        given().auth().preemptive().basic(bob, bob + "-secret")
+        given()
+                .auth().preemptive().basic(bob, bob + "-secret")
                 .accept(ksqlMediaType)
                 .contentType(ksqlMediaType)
                 .body(body2)
                 .when()
-                .post("/ksql")
+                    .post("/ksql")
                 .then()
-                .log().all().statusCode(200);//.body("commandStatus.status", is("SUCCESS"));
+                    .log().all()
+                    .statusCode(200);
 
 
-        final var pullQuery = Map.of("ksql", "SELECT * from aggs where product = 'milk';",
-                "streamsProperties", Map.of("ksql.streams.auto.offset.reset", "earliest"));
+        Thread.sleep(1000); // wait for state store to be ready, TODO: check whether there's a smarter way to do this.
 
-        Thread.sleep(1000);
+        final var pullQuery = Map.of("ksql", "SELECT * from aggs where product = 'milk';");
 
-        given().auth().preemptive().basic(bob, bob + "-secret")
+        given()
+                .auth().preemptive().basic(bob, bob + "-secret")
                 .accept(ksqlMediaType)
                 .contentType(ksqlMediaType)
                 .body(pullQuery)
                 .when()
-                .post("/query")
+                    .post("/query")
                 .then()
-                .statusCode(200)
-                .body("[1].row.columns[1]", is(18))
-                .log().all();
-        // TODO: is there an option to get values back as a dictionary?
+                    .log().all()
+                    .statusCode(200)
+                    .body("[1].row.columns[1]", is(18));
     }
 
 }
