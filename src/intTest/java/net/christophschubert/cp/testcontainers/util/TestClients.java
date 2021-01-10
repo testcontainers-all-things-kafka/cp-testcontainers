@@ -92,20 +92,29 @@ public class TestClients {
     }
 
     public static TestConsumer<String, GenericRecord> createAvroConsumer(String bootstrapServer, String schemaRegistryUrl) {
+        return createAvroConsumer(bootstrapServer, schemaRegistryUrl, Collections.emptyMap());
+    }
+
+    public static TestConsumer<String, GenericRecord> createAvroConsumer(String bootstrapServer, String schemaRegistryUrl, Map<String, Object> addProps) {
         final var props = getCommonConsumerProps(bootstrapServer);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
         props.put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
-
+        props.putAll(addProps);
         return new TestConsumer<>(props);
     }
 
     public static Producer<String, GenericRecord> createAvroProducer(String bootstrapServer, String schemaRegistryUrl) {
+        return createAvroProducer(bootstrapServer, schemaRegistryUrl, Collections.emptyMap());
+    }
+
+    public static Producer<String, GenericRecord> createAvroProducer(String bootstrapServer, String schemaRegistryUrl, Map<String, Object> addProps) {
         final Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
         props.put(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
         props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
+        props.putAll(addProps);
         return new KafkaProducer<>(props);
     }
 

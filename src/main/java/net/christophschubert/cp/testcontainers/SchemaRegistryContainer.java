@@ -13,6 +13,7 @@ import static net.christophschubert.cp.testcontainers.SecurityConfigs.*;
 public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryContainer> {
 
     static final int defaultPort = 8081;
+    private String clusterId = "schema-registry";
 
     SchemaRegistryContainer(DockerImageName imageName, KafkaContainer bootstrap, Network network) {
         super(imageName, bootstrap, network, defaultPort, "SCHEMA_REGISTRY");
@@ -21,6 +22,16 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         withProperty("host.name", "schema-registry");
         withProperty("kafkastore.bootstrap.servers", getInternalBootstrap(bootstrap));
         withProperty("listeners", getHttpPortListener());
+    }
+
+    public SchemaRegistryContainer withClusterId(String clusterId) {
+        this.clusterId = clusterId;
+        withProperty("schema.registry.group.id", clusterId);
+        return this;
+    }
+
+    public String getClusterId() {
+        return clusterId;
     }
 
 

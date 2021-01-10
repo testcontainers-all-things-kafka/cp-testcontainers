@@ -5,10 +5,13 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 
+/**
+ * Helper class to perform role bindings against MDS server listening on localhost.
+ *
+ * All methods contain assertions to check against HTTP status codes indicating success.
+ */
 public class MdsRestWrapper {
-    // all methods in the class assume that MDS is listening on localhost
 
-    //
     public enum ClusterRole {
         SystemAdmin("SystemAdmin"),
         ClusterAdmin("ClusterAdmin"),
@@ -66,7 +69,8 @@ public class MdsRestWrapper {
 
     public enum ResourceType {
         KsqlCluster("KsqlCluster"),
-        KsqlClusterResource("KsqlCluster"); // to increase readability
+        KsqlClusterResource("KsqlCluster"), // to increase readability
+        Subject("Subject");
 
         final String resourceType;
         ResourceType(String resourceType) {
@@ -154,13 +158,16 @@ public class MdsRestWrapper {
                 ));
 
         final var path = String.format("/security/1.0/principals/User:%s/roles/%s/bindings", principal, role.roleName);
-        given().auth().preemptive().basic(mdsUser, mdsUserPassword)
+        given()
+                .auth().preemptive().basic(mdsUser, mdsUserPassword)
                 .body(res)
                 .contentType("application/json")
                 .port(port)
-                .when()
+        .when()
                 .post(path)
-                .then().log().all().statusCode(204);
+        .then()
+                .log().all()
+                .statusCode(204);
     }
 
     public void grantRoleOnResource(String principal, ResourceRole role, ClusterType clusterType, String clusterId, ResourceType resourceType, String resourceName) {

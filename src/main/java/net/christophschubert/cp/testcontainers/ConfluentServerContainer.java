@@ -19,7 +19,7 @@ public class ConfluentServerContainer extends KafkaContainer {
 
     public ConfluentServerContainer() {
         super(DockerImageName.parse("confluentinc/cp-server:6.0.1").asCompatibleSubstituteFor("confluentinc/cp-kafka"));
-        withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT);
+        withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT); //mdsPort doubles as port for
         withStartupTimeout(Duration.ofMinutes(4));
         withEnv(pToEKafka("confluent.metadata.topic.replication.factor"), "1");
         withEnv(pToEKafka("confluent.license.topic.replication.factor"), "1");
@@ -129,5 +129,9 @@ public class ConfluentServerContainer extends KafkaContainer {
 
     String mdsPrefix(String property) {
         return pToEKafka("confluent.metadata.server." + property);
+    }
+
+    public String licenseTopic() {
+        return "_confluent-license";
     }
 }
