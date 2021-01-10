@@ -145,7 +145,6 @@ public class CPServerTest {
                 .enableRbac()
                 .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
 
-
         mdsWrapper.grantRoleOnCluster(srUser, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId());
 
         mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, "_schemas");
@@ -171,8 +170,7 @@ public class CPServerTest {
 
     @Test
     public void superUserShouldStartSRWithoutBinding() throws ExecutionException, InterruptedException {
-        final Network network = Network.newNetwork();
-        final var factory = new CPTestContainerFactory(network);
+        final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap();
 
         final var cpServer = factory.createConfluentServer().enableRbac();
@@ -180,79 +178,31 @@ public class CPServerTest {
         final var sr = factory
                 .createSchemaRegistry(cpServer)
                 .enableRbac("http://kafka:8090", "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
-        Startables.deepStart(List.of(cpServer, ldap, sr)).get();
+        startAll(cpServer, ldap, sr);
 
-
-        ///////////////
-
-
-        RestAssured.port = cpServer.getMdsPort();
 
         final String srUser = "sr-user";
 
-        final var id = given().
-                when().
-                get("/v1/metadata/id").
-                then().
-                statusCode(200).
-                log().all().extract().body().path("id").toString();
+        final MdsRestWrapper mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), alice, aliceSecret);
 
-        final var clusters = Map.of("clusters", Map.of("kafka-cluster", id, "schema-registry-cluster", "schema-registry"));
+        mdsWrapper.grantRoleOnCluster(srUser, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId());
 
-        given().auth().preemptive().basic("alice", "alice-secret").
-                accept("application/json").
-                contentType("application/json").
-                body(clusters).
-                when().
-                post("/security/1.0/principals/User:" + srUser + "/roles/SecurityAdmin").
-                then().statusCode(204).log().all();
+        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Group, sr.getClusterId());
+        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, "_schemas");
 
-
-        final var scope = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id)),
-                "resourcePatterns", List.of(Map.of("resourceType", "Group", "name", "schema-registry", "patternType", "LITERAL"),
-                        Map.of("resourceType", "Topic", "name", "_schemas", "patternType", "LITERAL")));
-
-
-        given().auth().preemptive().basic("alice", "alice-secret").
-                accept("application/json").
-                contentType("application/json").
-                body(scope).
-                post("/security/1.0/principals/User:" + srUser + "/roles/ResourceOwner/bindings").
-                then().statusCode(204).log().all();
-
-        final var licenseScope = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id)),
-                "resourcePatterns", List.of(Map.of("resourceType", "Topic", "name", "_confluent-license", "patternType", "LITERAL")
-                ));
-
-        for (String role : List.of("DeveloperRead", "DeveloperWrite")) {
-            given().auth().preemptive().basic("alice", "alice-secret").
-                    accept("application/json").
-                    contentType("application/json").
-                    body(licenseScope).
-                    post(String.format("/security/1.0/principals/User:%s/roles/%s/bindings", srUser, role)).
-                    then().statusCode(204);
+        for (var role : List.of(DeveloperRead, DeveloperWrite)) {
+            mdsWrapper.grantRoleOnKafkaResource(srUser, role, Topic, cpServer.licenseTopic());
         }
-
 
         // alice is Kafka super-user, which does not help her when registering schemas (?!), let's give her the rights.
-        final var schemasScope = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id, "schema-registry-cluster", "schema-registry")),
-                "resourcePatterns", List.of(Map.of("resourceType", "Subject", "name", "test", "patternType", "LITERAL")
-                ));
-        for (String role : List.of("DeveloperRead", "DeveloperWrite")) {
-            given().auth().preemptive().basic("alice", "alice-secret").
-                    accept("application/json").
-                    contentType("application/json").
-                    body(schemasScope).
-                    post(String.format("/security/1.0/principals/User:%s/roles/%s/bindings", "alice", role)).
-                    then().log().all();
+        for (var role : List.of(DeveloperRead, DeveloperWrite)) {
+            mdsWrapper.grantRoleOnResource(alice, role, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId(), MdsRestWrapper.ResourceType.Subject, "test");
+
         }
 
-        ////////////////
 
         RestAssured.port = sr.getMappedHttpPort();
-
         given().when().get("subjects").then().statusCode(401);
-
         given().auth().preemptive().basic("alice", "alice-secret").contentType("application/vnd.schemaregistry.v1+json").when().get("subjects").then().statusCode(200).
                 body("", is(Collections.emptyList())).log().all();
 
@@ -279,8 +229,7 @@ public class CPServerTest {
         System.out.println(recordMetadata);
         final var producerNonAuth = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("alice", "alice-wrongpassword"));
         try {
-            final var _unused = producerNonAuth.send(new ProducerRecord<>(topicName, "hello-world")).get();
-            System.out.println(_unused);
+            producerNonAuth.send(new ProducerRecord<>(topicName, "hello-world")).get();
         } catch (ExecutionException e) {
             Assert.assertThat(e.getCause(), instanceOf(SaslAuthenticationException.class));
             return;
