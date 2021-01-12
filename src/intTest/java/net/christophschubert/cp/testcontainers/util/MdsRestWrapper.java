@@ -68,6 +68,7 @@ public class MdsRestWrapper {
     }
 
     public enum ResourceType {
+        Connector("Connector"),
         KsqlCluster("KsqlCluster"),
         KsqlClusterResource("KsqlCluster"), // to increase readability
         Subject("Subject");

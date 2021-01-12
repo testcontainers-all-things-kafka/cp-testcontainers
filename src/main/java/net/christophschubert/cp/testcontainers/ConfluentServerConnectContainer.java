@@ -4,6 +4,8 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.List;
+
 import static net.christophschubert.cp.testcontainers.ContainerConfigs.CUB_CLASSPATH;
 import static net.christophschubert.cp.testcontainers.SecurityConfigs.*;
 
@@ -25,6 +27,15 @@ public class ConfluentServerConnectContainer extends KafkaConnectContainer {
         // configure access to broker via OAuth
         withProperties(oAuthWithTokenCallbackHandlerProperties(principal, secret, mdsServer));
 
+        //option 2
+        // need to configure these properties, even they are the some as for the connect worker.
+        // Otherwise, e.g,  the `producer.override.sasl.jaas.config` of a source
+        // connector will not be picked up and hence it is not possible to start a connect with a user principal.
+        for (var prefix: List.of("producer", "consumer", "admin")) {
+            withProperty(prefix + ".security.protocol", "SASL_PLAINTEXT");
+            withProperty(prefix + ".sasl.mechanism", "OAUTHBEARER");
+            withProperty(prefix + ".sasl.login.callback.handler.class", "io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler");
+        }
         //important: when not configuring secrets, do NOT include `io.confluent.connect.secretregistry.ConnectSecretRegistryExtension`
         // the security extension is definitely needed for RBAC
         withProperty("rest.extension.classes", "io.confluent.connect.security.ConnectSecurityExtension");//,io.confluent.connect.secretregistry.ConnectSecretRegistryExtension");
