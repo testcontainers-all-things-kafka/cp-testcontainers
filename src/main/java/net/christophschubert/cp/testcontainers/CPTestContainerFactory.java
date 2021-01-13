@@ -5,14 +5,16 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static net.christophschubert.cp.testcontainers.SecurityConfigs.plainJaas;
 
 public class CPTestContainerFactory {
 
     String repository = "confluentinc";
+
     String tag = "6.0.1";
 
-    Network network;
+    final Network network;
 
     public CPTestContainerFactory(Network network) {
         Objects.requireNonNull(network);
@@ -21,6 +23,18 @@ public class CPTestContainerFactory {
 
     public CPTestContainerFactory() {
         this(Network.newNetwork());
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    /**
+     * Set the tag (i.e. version) used to create docker images
+     * @param tag the tag, e.g. 6.0.1 or 5.5.1
+     */
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     public LdapContainer createLdap(Set<String> userNames) {
@@ -72,9 +86,9 @@ public class CPTestContainerFactory {
                 .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN")
                 .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN")
                 .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", "PLAIN")
-                .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  formatJaas(admin, adminSecret, Map.of(admin, adminSecret)))
-                .withEnv("KAFKA_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret, Collections.emptyMap()))
-                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", formatJaas(admin, adminSecret, userInfo));
+                .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  plainJaas(admin, adminSecret, Map.of(admin, adminSecret)))
+                .withEnv("KAFKA_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret, Collections.emptyMap()))
+                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret, userInfo));
         if (enableAuthorizationViaAcls) {
             //Remark: should use kafka.security.auth.SimpleAclAuthorizer for tags BEFORE 5.4.0.
             //Since this is pretty ancient by now, no logic for choosing the right authorizer is implemented.
@@ -148,19 +162,7 @@ public class CPTestContainerFactory {
         return DockerImageName.parse(String.format("%s/%s:%s", repository, componentName, tag));
     }
 
-    // helper methods
-    public static String formatJaas(String user, String password, Map<String, String> additionalUsers) {
-        final var collectUsers = additionalUsers.entrySet().stream()
-                .map(e -> String.format("user_%s=\"%s\"", e.getKey(), e.getValue()))
-                .collect(Collectors.joining(" "));
-        return String.format(
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\" %s;",
-                user, password, collectUsers);
-    }
 
-    public static String formatJaas(String user, String password) {
-        return formatJaas(user, password, Collections.emptyMap());
-    }
 
     /**
      * Translates property keys to environment variables.

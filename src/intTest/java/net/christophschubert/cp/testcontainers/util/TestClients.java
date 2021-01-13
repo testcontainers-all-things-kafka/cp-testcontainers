@@ -4,7 +4,7 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
-import net.christophschubert.cp.testcontainers.CPTestContainerFactory;
+import net.christophschubert.cp.testcontainers.SecurityConfigs;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,9 +27,9 @@ public class TestClients {
     public static Map<String, Object> createJaas(String user, String password) {
         return Map.of(
 
-                SaslConfigs.SASL_MECHANISM, "PLAIN",
-                "security.protocol", "SASL_PLAINTEXT",
-                SaslConfigs.SASL_JAAS_CONFIG, CPTestContainerFactory.formatJaas(user, password)
+                SaslConfigs.SASL_MECHANISM, SecurityConfigs.PLAIN,
+                "security.protocol", SecurityConfigs.SASL_PLAINTEXT,
+                SaslConfigs.SASL_JAAS_CONFIG, SecurityConfigs.plainJaas(user, password)
         );
     }
 

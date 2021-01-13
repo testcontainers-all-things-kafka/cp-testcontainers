@@ -1,6 +1,8 @@
 package net.christophschubert.cp.testcontainers;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SecurityConfigs {
     public static final String SASL_PLAINTEXT = "SASL_PLAINTEXT";
@@ -16,8 +18,22 @@ public class SecurityConfigs {
     }
 
     public static String plainJaas(String username, String password) {
-        return String.format("org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";", username, password);
+        return plainJaas(username, password, Collections.emptyMap());
     }
+
+
+
+    public static String plainJaas(String user, String password, Map<String, String> additionalUsers) {
+        final var collectUsers = additionalUsers.entrySet().stream()
+                .map(e -> String.format("user_%s=\"%s\"", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(" "));
+        return String.format(
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\" %s;",
+                user, password, collectUsers);
+    }
+
+
+
 
     static public Map<String, Object> oAuthWithTokenCallbackHandlerProperties(String principal, String secret, String mdsBootstrap) {
         assert (mdsBootstrap.startsWith("http"));
