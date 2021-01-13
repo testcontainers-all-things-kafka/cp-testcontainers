@@ -6,6 +6,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.*;
 
+import static net.christophschubert.cp.testcontainers.SecurityConfigs.PLAIN;
 import static net.christophschubert.cp.testcontainers.SecurityConfigs.plainJaas;
 
 public class CPTestContainerFactory {
@@ -33,8 +34,9 @@ public class CPTestContainerFactory {
      * Set the tag (i.e. version) used to create docker images
      * @param tag the tag, e.g. 6.0.1 or 5.5.1
      */
-    public void setTag(String tag) {
+    public CPTestContainerFactory withTag(String tag) {
         this.tag = tag;
+        return this;
     }
 
     public LdapContainer createLdap(Set<String> userNames) {
@@ -83,9 +85,9 @@ public class CPTestContainerFactory {
                 .withNetwork(network)
                 .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
                 .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
-                .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN")
-                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN")
-                .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", "PLAIN")
+                .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", PLAIN)
+                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", PLAIN)
+                .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", PLAIN)
                 .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  plainJaas(admin, adminSecret, Map.of(admin, adminSecret)))
                 .withEnv("KAFKA_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret, Collections.emptyMap()))
                 .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret, userInfo));
