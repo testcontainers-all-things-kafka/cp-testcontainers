@@ -5,6 +5,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 import static net.christophschubert.cp.testcontainers.CPTestContainerFactory.pToEKafka;
 import static net.christophschubert.cp.testcontainers.SecurityConfigs.*;
@@ -28,7 +29,7 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv(pToEKafka("transaction.state.log.min.isr"), "1");
         withEnv(pToEKafka("offsets.topic.replication.factor"), "1");
 
-
+        //TODO: clarify whether CONFLUENT prefixed env vars get carried to container
         withEnv("CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
         withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
 //        withEnv("CONFLUENT_TELEMETRY_ENABLED", "false");
@@ -38,10 +39,18 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv("KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR", "1"); // also sets the _confluent-telemetry-metrics topic RF to 1
       //  withEnv("KAFKA_METRIC_REPORTERS", " io.confluent.metrics.reporter.ConfluentMetricsReporter");
         withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS", "kafka:9092");
-        withEnv(pToEKafka("confluent.balancer.enable"), "false");
+        withProperty("confluent.balancer.enable", false);
         withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1");
 
     }
+
+    ConfluentServerContainer withProperty(String property, Object value) {
+        Objects.requireNonNull(value);
+        final String envVar = "KAFKA_" + property.replace('.', '_').toUpperCase();
+        withEnv(envVar, value.toString());
+        return this;
+    }
+
 
     public int getMdsPort() {
         return getMappedPort(mdsPort);
@@ -61,12 +70,12 @@ public class ConfluentServerContainer extends KafkaContainer {
         withNetworkAliases(brokerNetworkAlias);
         withFileSystemBind(localCertPath, containerCertPath);  //copy certificates
 
-        withEnv(pToEKafka("super.users"), "User:admin;User:mds;User:alice");
+        withProperty("super.users", "User:admin;User:mds;User:alice");
         // KafkaContainer configures two listeners: PLAINTEXT (port 9093), and BROKER (port 9092), BROKER is used for the
         // internal communication on the docker network. We need to configure two SASL mechanisms on BROKER.
         // PLAINTEXT will be used for the communication with external clients, we configure SASL Plain here as well.
-        withEnv(pToEKafka("listener.security.protocol.map"), "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT");
-        withEnv(pToEKafka("confluent.metadata.security.protocol"), SASL_PLAINTEXT);
+        withProperty("listener.security.protocol.map", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT");
+        withProperty("confluent.metadata.security.protocol", SASL_PLAINTEXT);
         withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER");
         withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", PLAIN);
         withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", "PLAIN,OAUTHBEARER"); //Plain for broker<->broker, oauthbearer for cp components<->broker

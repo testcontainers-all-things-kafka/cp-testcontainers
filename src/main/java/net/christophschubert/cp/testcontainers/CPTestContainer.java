@@ -8,6 +8,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Base class for the Confluent platform components exposing a (REST) HTTP port.
@@ -40,6 +41,7 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
     }
 
     CPTestContainer<SELF> withProperty(String property, Object value) {
+        Objects.requireNonNull(value);
         final String envVar = propertyPrefix + "_" + property.replace('.', '_').toUpperCase();
         withEnv(envVar, value.toString());
         return this;
