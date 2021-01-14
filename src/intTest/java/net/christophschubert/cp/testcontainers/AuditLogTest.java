@@ -34,11 +34,13 @@ public class AuditLogTest {
 //                        .withProperty("kafka.rest.authentication.realm", "KafkaRest")
 //                        .withProperty("kafka.rest.authentication.roles", "adminRole")
                 //configure SASL Plain
-                .withProperty("kafka.rest.client.sasl.jaas.config", plainJaas(admin, adminSecret))
-                .withProperty("kafka.rest.client.security.protocol", SASL_PLAINTEXT)
-                .withProperty("kafka.rest.client.sasl.mechanism", PLAIN)
+//                .withProperty("kafka.rest.client.sasl.jaas.config", plainJaas(admin, adminSecret))
+//                .withProperty("kafka.rest.client.security.protocol", SASL_PLAINTEXT)
+//                .withProperty("kafka.rest.client.sasl.mechanism", PLAIN)
 
-                .withProperty("confluent.security.event.logger.enable", true)
+                //audit logs capture produce/consume events
+                .withProperty("confluent.security.event.router.config","{\"routes\":{\"crn:///kafka=*/group=*\":{\"consume\":{\"allowed\":\"confluent-audit-log-events\",\"denied\":\"confluent-audit-log-events\"}},\"crn:///kafka=*/topic=*\":{\"produce\":{\"allowed\":\"confluent-audit-log-events\",\"denied\":\"confluent-audit-log-events\"},\"consume\":{\"allowed\":\"confluent-audit-log-events\",\"denied\":\"confluent-audit-log-events\"}}},\"destinations\":{\"topics\":{\"confluent-audit-log-events\":{\"retention_ms\":7776000000}}},\"default_topics\":{\"allowed\":\"confluent-audit-log-events\",\"denied\":\"confluent-audit-log-events\"},\"excluded_principals\":[]}"
+                )
 
                 .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
                 .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
@@ -64,43 +66,19 @@ public class AuditLogTest {
         final TestClients.TestConsumer<String, String> consumer = TestClients.createConsumer(cpServer.getBootstrapServers(), plainJaasProperties("bob", "bob-secret"));
         consumer.subscribe(List.of(topicName));
         try {
-
             final var values = consumer.consumeUntil(1, Duration.ofSeconds(5), 2);
         } catch (Exception e) {
+            // expect exception: bob isn't authorized to read from topic
             e.printStackTrace();
         } finally {
             consumer.close();
         }
 
 
-        RestAssured.port = cpServer.getMdsPort();
-
-        final var id = given().
-                when().
-                get("/v1/metadata/id").
-                then().
-                statusCode(200).
-                log().all().extract().body().path("id").toString();
-
-        given()
-                .when()
-                .contentType("application/json")
-                .body(Map.of("topic_name", "new-topic"))
-                .post("/kafka/v3/clusters/" + id + "/topics")
-                .then().log().all();
-
-
-        given()
-                .when()
-                .get("/kafka/v3/clusters/" + id + "/topics")
-                .then().log().all();
-
-
         final TestClients.TestConsumer<String, String> auditLogConsumer = TestClients.createConsumer(cpServer.getBootstrapServers(), adminJaas);
         auditLogConsumer.subscribe(List.of("confluent-audit-log-events"));
-        final var logEvents = auditLogConsumer.consumeUntil(10, Duration.ofSeconds(2), 2);
-        System.out.println(logEvents);
-
+        final var logEvents = auditLogConsumer.consumeUntil(10, Duration.ofSeconds(5), 2);
+        logEvents.forEach(System.out::println);
     }
 }
 
