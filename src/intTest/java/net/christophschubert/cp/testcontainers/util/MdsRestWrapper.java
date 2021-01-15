@@ -33,7 +33,6 @@ public class MdsRestWrapper {
         DeveloperWrite("DeveloperWrite"),
         ResourceOwner("ResourceOwner");
 
-
         public final String roleName;
 
         ResourceRole(String roleName) {
@@ -69,7 +68,7 @@ public class MdsRestWrapper {
 
     public enum ResourceType {
         Connector("Connector"),
-        KsqlCluster("KsqlCluster"),
+        KsqlCluster("KsqlCluster"), //TODO: deprecate
         KsqlClusterResource("KsqlCluster"), // to increase readability
         Subject("Subject");
 
@@ -95,14 +94,12 @@ public class MdsRestWrapper {
     public String getKafkaClusterId() {
         return given().
                 when().
-                port(port).
-                get("/v1/metadata/id").
+                    port(port).
+                    get("/v1/metadata/id").
                 then().
-                statusCode(200).
-                log().all().extract().body().path("id").toString();
+                    statusCode(200).
+                    log().all().extract().body().path("id").toString();
     }
-
-
 
 
     public void grantRoleOnCluster(String principal, ClusterRole role, ClusterType clusterType, String clusterName) {
