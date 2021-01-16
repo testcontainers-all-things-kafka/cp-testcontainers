@@ -16,8 +16,8 @@ public class ConfluentServerContainer extends KafkaContainer {
     final String admin = "admin";
     final String adminSecret = "admin-secret";
 
-    public ConfluentServerContainer() {
-        super(DockerImageName.parse("confluentinc/cp-server:6.0.1").asCompatibleSubstituteFor("confluentinc/cp-kafka"));
+    public ConfluentServerContainer(String tag) {
+        super(DockerImageName.parse("confluentinc/cp-server:" + tag).asCompatibleSubstituteFor("confluentinc/cp-kafka"));
         withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT); //mdsPort doubles as port for
         withStartupTimeout(Duration.ofMinutes(4));
         withEnv(pToEKafka("confluent.metadata.topic.replication.factor"), "1");

@@ -9,17 +9,21 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 public class KafkaContainerSaslTest {
 
+    final SalsPlainDecorator bobDecorator = new SalsPlainDecorator(Map.of("bob", "bob-secret"));
+
+    //TODO: rewrite test to check for cause of exception
     @Test(expected = ExecutionException.class)
     public void setupWithSaslProducerWithoutSaslFail() throws ExecutionException, InterruptedException {
-        CPTestContainerFactory factory = new CPTestContainerFactory();
-        final var kafka = factory.createKafkaSaslPlain(Collections.emptyMap());
+        final CPTestContainerFactory factory = new CPTestContainerFactory();
+        final SalsPlainDecorator decorator = new SalsPlainDecorator();
+        final var kafka = factory.createKafka();
+        decorator.addSaslPlainConfig(kafka);
         kafka.start();
 
         final Producer<String, String> producer = TestClients.createProducer(kafka.getBootstrapServers());
@@ -29,7 +33,9 @@ public class KafkaContainerSaslTest {
     @Test
     public void wrongPasswordRaisesException() throws InterruptedException {
         CPTestContainerFactory factory = new CPTestContainerFactory();
-        final var kafka = factory.createKafkaSaslPlain(Map.of("bob", "bob-secret"));
+        final var kafka = factory.createKafka();
+        bobDecorator.addSaslPlainConfig(kafka);
+
         kafka.start();
 
         final var bobJaas = TestClients.createJaas("bob", "bob-wrongpassword");
@@ -47,7 +53,8 @@ public class KafkaContainerSaslTest {
     @Test
     public void setupWithSaslProducerConsumer() throws ExecutionException, InterruptedException {
         CPTestContainerFactory factory = new CPTestContainerFactory();
-        final var kafka = factory.createKafkaSaslPlain(Map.of("bob", "bob-secret"));
+        final var kafka = factory.createKafka();
+        bobDecorator.addSaslPlainConfig(kafka);
         kafka.start();
 
         final var topicName = "testtopic";
@@ -68,7 +75,8 @@ public class KafkaContainerSaslTest {
     @Test
     public void superUserCanAccessWithoutAcls() throws ExecutionException, InterruptedException {
         CPTestContainerFactory factory = new CPTestContainerFactory();
-        final var kafka = factory.createKafkaSaslPlain(Map.of("bob", "bob-secret"), true);
+        final var kafka = factory.createKafka();
+        bobDecorator.addSaslPlainConfig(kafka, true);
         kafka.start();
 
         final var topicName = "testtopic";
@@ -90,7 +98,8 @@ public class KafkaContainerSaslTest {
     @Test
     public void noAclsShouldThrowException() throws InterruptedException {
         CPTestContainerFactory factory = new CPTestContainerFactory();
-        final var kafka = factory.createKafkaSaslPlain(Map.of("bob", "bob-secret"), true);
+        final var kafka = factory.createKafka();
+        bobDecorator.addSaslPlainConfig(kafka, true);
         kafka.start();
 
         final var bobJaas = TestClients.createJaas("bob", "bob-secret");

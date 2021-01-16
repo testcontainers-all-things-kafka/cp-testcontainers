@@ -17,7 +17,6 @@ public class AuditLogTest {
     public void auditLogsAreEnabled() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var cpServer = factory.createConfluentServer();
-
         final var logAllConf =
                 "{" +
                         "        \"routes\": {" +
@@ -98,7 +97,6 @@ public class AuditLogTest {
         SalsPlainDecorator decorator = new SalsPlainDecorator(Map.of("bob", "bob-secret"));
         decorator.addSaslPlainConfig(cpServer, true);
         cpServer.withProperty("confluent.security.event.router.config", logAllConf);
-
 
         cpServer.start();
 

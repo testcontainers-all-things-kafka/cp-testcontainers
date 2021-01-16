@@ -219,7 +219,7 @@ public class CPServerTest {
 
         final var cpServer = factory.createConfluentServer().enableRbac();
 
-        Startables.deepStart(List.of(cpServer, ldap)).get();
+        startAll(cpServer, ldap);
 
         final var topicName = "testTopic";
 
@@ -243,13 +243,13 @@ public class CPServerTest {
         final var ldap = factory.createLdap(Set.of("alice", "mds", "producer", "consumer"));
 
         final var cpServer = factory.createConfluentServer().enableRbac();
-        Startables.deepStart(List.of(cpServer, ldap)).get();
+        startAll(cpServer, ldap);
         final var topicName = "testTopic";
 
         final var producer = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("producer", "producer-secret"));
 
         try {
-            producer.send(new ProducerRecord<>(topicName, "hello-world")).get();
+            producer.send(new ProducerRecord<>(topicName, "never going to be produced value")).get();
             Assert.fail(); // fail if no exception was thrown
         } catch (ExecutionException e) {
             Assert.assertThat(e.getCause(), instanceOf(TopicAuthorizationException.class));

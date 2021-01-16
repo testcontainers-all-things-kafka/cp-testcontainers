@@ -5,8 +5,8 @@ import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+import org.junit.Assert;
 import org.junit.Test;
-import org.testcontainers.lifecycle.Startables;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -190,6 +190,7 @@ public class ConnectRbacTest {
                 .with("value.converter.schema.registry.url", schemaRegistry.getInternalBaseUrl())
                 .with("value.converter.basic.auth.credentials.source", "USER_INFO")
                 .with("value.converter.basic.auth.user.info", "bob:bob-secret")
+//                .with("value.converter.basic.auth.credentials.source", "SASL_INHERIT") //TODO: SASL_INHERIT doesn't seem to work here - look into that
                 // option 1: use overrides here
 //                .with("producer.override.security.protocol", "SASL_PLAINTEXT")
 //                .with("producer.override.sasl.mechanism", "OAUTHBEARER")
@@ -228,6 +229,8 @@ public class ConnectRbacTest {
                 schemaRegistry.getBaseUrl(),
                 addProps);
         consumer.subscribe(List.of(topicName));
-        System.out.println(consumer.consumeUntil(100));
+        final var records = consumer.consumeUntil(100);
+        System.out.println(records);
+        Assert.assertTrue(records.size() > 0);
     }
 }
