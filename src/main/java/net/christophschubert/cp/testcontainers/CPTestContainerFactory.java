@@ -53,52 +53,7 @@ public class CPTestContainerFactory {
 
 
     public ConfluentServerContainer createConfluentServer() {
-        return (ConfluentServerContainer) new ConfluentServerContainer().withNetwork(network);
-    }
-
-    /**
-     * Create a new Kafka container with SASL PLAIN authentication enabled.
-     *
-     * Their will be one user admin with password admin-secret configured implicitly.
-     *
-     * @param userAndPasswords additional users and their passwords.
-     * @return a KafkaContainer with external SASL Plain listener
-     */
-    public KafkaContainer createKafkaSaslPlain(Map<String, String> userAndPasswords) {
-        return createKafkaSaslPlain(userAndPasswords, false);
-    }
-
-    public KafkaContainer createKafkaSaslPlain(Map<String, String> userAndPasswords, boolean enableAuthorizationViaAcls) {
-        // The testcontainer Kafka module specifies two listeners PLAINTEXT and BROKER.
-        // The advertised listener of PLAINTEXT is mapped to a port on localhost.
-        // For Confluent Platform components running in the same Docker network as the broker we need to use the BROKER listener
-        // (which should really be called INTERNAL).
-        //
-        // see https://www.testcontainers.org/modules/kafka/ for details
-
-        final String admin = "admin";
-        final String adminSecret = "admin-secret";
-        final Map<String, String> userInfo = new HashMap<>(userAndPasswords);
-        userInfo.put(admin, adminSecret);
-
-        final var kafka =  new KafkaContainer(imageName("cp-kafka"))
-                .withNetwork(network)
-                .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
-                .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
-                .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", PLAIN)
-                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", PLAIN)
-                .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", PLAIN)
-                .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",  plainJaas(admin, adminSecret, Map.of(admin, adminSecret)))
-                .withEnv("KAFKA_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret, Collections.emptyMap()))
-                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret, userInfo));
-        if (enableAuthorizationViaAcls) {
-            //Remark: should use kafka.security.auth.SimpleAclAuthorizer for tags BEFORE 5.4.0.
-            //Since this is pretty ancient by now, no logic for choosing the right authorizer is implemented.
-            kafka.withEnv(pToEKafka("authorizer.class.name"), "kafka.security.authorizer.AclAuthorizer")
-                .withEnv(pToEKafka("super.users"), "User:" + admin);
-        }
-
-        return kafka;
+        return (ConfluentServerContainer) new ConfluentServerContainer(tag).withNetwork(network);
     }
 
     public SchemaRegistryContainer createSchemaRegistry(KafkaContainer bootstrap) {

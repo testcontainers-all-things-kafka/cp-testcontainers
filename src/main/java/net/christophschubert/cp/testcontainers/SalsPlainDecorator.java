@@ -49,6 +49,12 @@ public class SalsPlainDecorator {
         return addSaslPlainConfig(container, false);
     }
 
+    /**
+     * Configure the listeners of container with SASL PLAIN authentication enabled.
+     *
+     * Their will be one user admin with password admin-secret configured implicitly.
+     *
+     */
     public <T extends KafkaContainer> T addSaslPlainConfig(T container, boolean enableAuthorizationViaAcls) {
 
         // The testcontainer Kafka module specifies two listeners PLAINTEXT and BROKER.
