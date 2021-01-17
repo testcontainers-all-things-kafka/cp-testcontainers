@@ -135,6 +135,5 @@ public class AuditLogTest {
         logEvents.forEach(System.out::println);
     }
 
-
 }
 

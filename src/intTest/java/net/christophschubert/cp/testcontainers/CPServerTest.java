@@ -13,8 +13,6 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Assert;
 import org.junit.Test;
-import org.testcontainers.containers.Network;
-import org.testcontainers.lifecycle.Startables;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -40,9 +38,9 @@ public class CPServerTest {
         cpServer.start();
         RestAssured.port = cpServer.getMdsPort();
 
-        // even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy embedded in
-        // Confluent Server.
-        // See https://docs.confluent.io/platform/current/kafka-rest/api.html#crest-api-v3 for documentation on the
+        // Even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy
+        // embedded in Confluent Server.
+        // See https://docs.confluent.io/platform/current/kafka-rest/api.html#crest-api-v3 for documentation on the API.
         // TODO: question: how is this REST interface secured?
         given().
                 when().

@@ -18,30 +18,24 @@ public class ConfluentServerContainer extends KafkaContainer {
 
     public ConfluentServerContainer(String tag) {
         super(DockerImageName.parse("confluentinc/cp-server:" + tag).asCompatibleSubstituteFor("confluentinc/cp-kafka"));
-        withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT); //mdsPort doubles as port for
+        withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT); //mdsPort doubles as port for embedded (admin, V3) REST proxy
         withStartupTimeout(Duration.ofMinutes(4));
-        withEnv(pToEKafka("confluent.metadata.topic.replication.factor"), "1");
-        withEnv(pToEKafka("confluent.license.topic.replication.factor"), "1");
-        withEnv(pToEKafka("confluent.metadata.bootstrap.servers"), "BROKER://kafka:9092");
 
-        //TODO: replicate to Kafka container: needed to start transactional producer
-        withEnv(pToEKafka("transaction.state.log.replication.factor"), "1");
-        withEnv(pToEKafka("transaction.state.log.min.isr"), "1");
-        withEnv(pToEKafka("offsets.topic.replication.factor"), "1");
+        KafkaContainerTools.adjustReplicationFactors(this, 1);
+        setReplicationFactors(1);
 
-        //TODO: clarify whether CONFLUENT prefixed env vars get carried to container
-        withEnv("CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
-        withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "1");
-//        withEnv("CONFLUENT_TELEMETRY_ENABLED", "false");
-        withEnv("KAFKA_CONFLUENT_TELEMETRY_ENABLED", "false");
-//        withEnv("CONFLUENT_METRICS_ENABLE", "true");
-//        withEnv("KAFKA_CONFLUENT_METRICS_ENABLE", "true");
-        withEnv("KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR", "1"); // also sets the _confluent-telemetry-metrics topic RF to 1
-      //  withEnv("KAFKA_METRIC_REPORTERS", " io.confluent.metrics.reporter.ConfluentMetricsReporter");
-        withEnv("KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS", "kafka:9092");
+
+        withProperty("confluent.telemetry.enabled", false);
+        withProperty("confluent.metrics.enabled", false);
         withProperty("confluent.balancer.enable", false);
-        withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1");
+    }
 
+    ConfluentServerContainer setReplicationFactors(int rf) {
+        withProperty("confluent.metadata.topic.replication.factor", rf);
+        withProperty("confluent.license.topic.replication.factor", rf);
+        withEnv("KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR", "" + rf); // also sets the _confluent-telemetry-metrics topic RF
+        withEnv("CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS", "" + rf);
+        return this;
     }
 
     ConfluentServerContainer withProperty(String property, Object value) {
@@ -108,8 +102,7 @@ public class ConfluentServerContainer extends KafkaContainer {
 
         withEnv(pToEKafka("confluent.authorizer.access.rule.providers"), "CONFLUENT,ZK_ACL");
 
-        // env var names starting with confluent will be taken over as well CONFLUENT
-        // TODO: double check in dub source code
+        // env var names starting with CONFLUENT_METRICS_ will be taken over as well
         withEnv("CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL", SASL_PLAINTEXT);
         withEnv("CONFLUENT_METRICS_REPORTER_SASL_MECHANISM", PLAIN);
         withEnv("CONFLUENT_METRICS_REPORTER_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret));
