@@ -21,8 +21,11 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
     protected final int httpPort;
     protected final String propertyPrefix;
 
+    final KafkaContainer bootstrap;
+
     CPTestContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network, int httpPort, String propertyPrefix) {
         super(dockerImageName);
+        this.bootstrap = bootstrap;
         dependsOn(bootstrap);
         withNetwork(network);
         withExposedPorts(httpPort);
@@ -33,6 +36,7 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
 
     CPTestContainer(ImageFromDockerfile dockerImage, KafkaContainer bootstrap, Network network, int httpPort, String propertyPrefix) {
         super(dockerImage);
+        this.bootstrap = bootstrap;
         dependsOn(bootstrap);
         withNetwork(network);
         withExposedPorts(httpPort);

@@ -27,59 +27,28 @@ public class ConnectRbacTest {
     final String alice = "alice";
     final String aliceSecret = "alice-secret";
 
-    void setUpAccess(ConfluentServerContainer cpServer) {
+    void setUpAccess(ConfluentServerContainer cpServer, String connectPrincipal) {
 
-        RestAssured.port = cpServer.getMdsPort();
+        final var mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), alice, aliceSecret);
 
-
-        // get Kafka cluster id
-        final var id = given().
-                when().
-                get("/v1/metadata/id").
-                then().
-                statusCode(200).
-                log().all().extract().body().path("id").toString();
-
-        final var clusters = Map.of("clusters",
-                Map.of("kafka-cluster", id,"connect-cluster", "connect"));
-
-        // grant connect principal the security admin role on the connect cluster
-        given().auth().preemptive().basic(alice, aliceSecret)
-                .body(clusters)
-                .contentType("application/json")
-                .log().all()
-                .when()
-                .post("/security/1.0/principals/User:connect-principal/roles/SecurityAdmin")
-                .then().log().all().statusCode(204);
+        // configure general access for connect cluster
+        // TODO: add method to get clusterId from connectCluster
+        mdsWrapper.grantRoleOnCluster(connectPrincipal, SecurityAdmin, MdsRestWrapper.ClusterType.ConnectCluster, "connect");
 
         // add ClusterAdmin role so that we can view connector status
-        given().auth().preemptive().basic(alice, aliceSecret)
-                .body(clusters)
-                .contentType("application/json")
-                .when()
-                .post("/security/1.0/principals/User:connect-principal/roles/SystemAdmin")
-                .then().log().all().statusCode(204);
+        // TODO: double check whether we need systemAdmin or ClusterAdmin or whether this is needed at all
+        mdsWrapper.grantRoleOnCluster(connectPrincipal, MdsRestWrapper.ClusterRole.SystemAdmin, MdsRestWrapper.ClusterType.ConnectCluster, "connect");
 
-        // grant ResourceOwner on connect group and on the topics
-        var connectGroup = Map.of("scope", Map.of("clusters", Map.of("kafka-cluster", id)),
-                "resourcePatterns", List.of(
-                        Map.of("resourceType", "Group","name", "connect","patternType", "LITERAL"),
-                        Map.of("resourceType", "Topic","name", "connect-configs","patternType", "LITERAL"),
-                        Map.of("resourceType", "Topic","name", "connect-offsets","patternType", "LITERAL"),
-                        Map.of("resourceType", "Topic","name", "connect-status","patternType", "LITERAL"),
-                        Map.of("resourceType", "Topic","name", "datagen","patternType", "LITERAL")
-                ));
+        mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Group, "connect");
 
-        given().auth().preemptive().basic(alice, aliceSecret)
-                 .body(connectGroup)
-                 .contentType("application/json")
-                 .when()
-                 .post("/security/1.0/principals/User:connect-principal/roles/ResourceOwner/bindings")
-                 .then().log().all().statusCode(204);
+        for (var topicName : List.of("connect-configs", "connect-offsets", "connect-status")) {
+            mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Topic, topicName);
+        }
+
     }
 
     @Test
-    public void setupRbacConnectFailsWithoutAuthZ() throws ExecutionException, InterruptedException, IOException {
+    public void setupRbacConnectFailsWithoutAuthZ() throws InterruptedException, IOException {
         final String connectPrincipal = "connect-principal";
         final String connectSecret = connectPrincipal + "-secret";
 
@@ -88,14 +57,15 @@ public class ConnectRbacTest {
 
         final var cServer = factory.createConfluentServer().enableRbac();
         final var connect = factory.createConfluentServerConnect(List.of("confluentinc/kafka-connect-datagen:0.4.0"), cServer)
-                .enableRbac("http://kafka:8090", connectPrincipal, connectSecret)
+                .enableRbac(cServer.getMdsUrl(), connectPrincipal, connectSecret)
                 .withLogConsumer(o -> System.out.print(o.getUtf8String()));
 
         startAll(ldap, cServer);
 
-        setUpAccess(cServer);
+        setUpAccess(cServer, connectPrincipal);
 
         connect.start();
+
 
         RestAssured.port = connect.getMappedHttpPort();
         given().auth().preemptive().basic(connectPrincipal, connectSecret)
@@ -118,6 +88,8 @@ public class ConnectRbacTest {
                 .get("/connectors")
                 .then().log().all().statusCode(200);
 
+
+        //TODO: write proper assertion here!!
     }
 
     @Test
@@ -135,7 +107,7 @@ public class ConnectRbacTest {
 
 
         final var connect = factory.createConfluentServerConnect(List.of("confluentinc/kafka-connect-datagen:0.4.0"), cpServer)
-                .enableRbac("http://kafka:8090", connectPrincipal, connectSecret)
+                .enableRbac(cpServer.getMdsUrl(), connectPrincipal, connectSecret)
                 .withLogConsumer(o -> System.out.print(o.getUtf8String()));
         final var schemaRegistry = factory.createSchemaRegistry(cpServer).enableRbac();
 
@@ -146,27 +118,12 @@ public class ConnectRbacTest {
 
         mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Group, schemaRegistry.getClusterId());
         mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Topic, "_schemas");
-
         for (var role : List.of(DeveloperRead, DeveloperWrite)) {
             mdsWrapper.grantRoleOnKafkaResource(srPrincipal, role, Topic, cpServer.licenseTopic());
         }
 
         // configure general access for connect cluster
-        // TODO: add method to get clusterId from connectCluster
-        mdsWrapper.grantRoleOnCluster(connectPrincipal, SecurityAdmin, MdsRestWrapper.ClusterType.ConnectCluster, "connect");
-
-        // add ClusterAdmin role so that we can view connector status
-        // TODO: double check whether we need systemAdmin or ClusterAdmin or whether this is needed at all
-        mdsWrapper.grantRoleOnCluster(connectPrincipal, MdsRestWrapper.ClusterRole.SystemAdmin, MdsRestWrapper.ClusterType.ConnectCluster, "connect");
-
-        mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Group, "connect");
-
-        for (var topicName: List.of("connect-configs", "connect-offsets", "connect-status")) {
-            mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Topic, topicName);
-        }
-
-
-        connect.prettyPrintEnvs();
+        setUpAccess(cpServer, connectPrincipal);
 
         startAll(connect, schemaRegistry);
 
@@ -190,12 +147,11 @@ public class ConnectRbacTest {
                 .with("value.converter.schema.registry.url", schemaRegistry.getInternalBaseUrl())
                 .with("value.converter.basic.auth.credentials.source", "USER_INFO")
                 .with("value.converter.basic.auth.user.info", "bob:bob-secret")
-//                .with("value.converter.basic.auth.credentials.source", "SASL_INHERIT") //TODO: SASL_INHERIT doesn't seem to work here - look into that
                 // option 1: use overrides here
 //                .with("producer.override.security.protocol", "SASL_PLAINTEXT")
 //                .with("producer.override.sasl.mechanism", "OAUTHBEARER")
 //                .with("producer.override.sasl.login.callback.handler.class", "io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler")
-                .with("producer.override.sasl.jaas.config", SecurityConfigs.oauthJaas("bob", "bob-secret", "http://kafka:8090"));
+                .with("producer.override.sasl.jaas.config", SecurityConfigs.oauthJaas("bob", "bob-secret", cpServer.getMdsUrl()));
 
         RestAssured.port = connect.getMappedHttpPort();
         given().auth().preemptive().basic("bob", "bob-secret")
@@ -215,7 +171,6 @@ public class ConnectRbacTest {
                 .log().all()
                 .get("/connectors/" + connectorName + "/status")
                 .then().log().all().statusCode(200);
-
 
 
         mdsWrapper.grantRoleOnKafkaResource("bob", DeveloperRead, Group, "test-group");

@@ -50,6 +50,11 @@ public class ConfluentServerContainer extends KafkaContainer {
         return getMappedPort(mdsPort);
     }
 
+    //TODO: rename to getInternalMdsUrl
+    public String getMdsUrl() {
+        return String.format("http://%s:%d", getNetworkAliases().get(0), mdsPort);
+    }
+
     /**
      * Assumes that there's an LDAP server with network alias ldap running on the same Docker network.
      *
@@ -61,8 +66,7 @@ public class ConfluentServerContainer extends KafkaContainer {
         final String localCertPath = "src/main/resources/certs";
 
         // this should be set for all Kafka container at startup-time already
-        final String brokerNetworkAlias = "kafka"; //getNetworkAliases().get(0);
-        withNetworkAliases(brokerNetworkAlias);
+        final String brokerNetworkAlias = getContainerIpAddress();
         withFileSystemBind(localCertPath, containerCertPath);  //copy certificates
 
         withProperty("super.users", "User:admin;User:mds;User:alice");

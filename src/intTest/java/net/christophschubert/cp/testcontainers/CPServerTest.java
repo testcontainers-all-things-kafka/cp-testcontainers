@@ -173,9 +173,10 @@ public class CPServerTest {
 
         final var cpServer = factory.createConfluentServer().enableRbac();
 
+        final var mdsBootstrap = String.format("http://%s:8090", cpServer.getNetworkAliases().get(0));
         final var sr = factory
                 .createSchemaRegistry(cpServer)
-                .enableRbac("http://kafka:8090", "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
+                .enableRbac(mdsBootstrap, "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
         startAll(cpServer, ldap, sr);
 
 

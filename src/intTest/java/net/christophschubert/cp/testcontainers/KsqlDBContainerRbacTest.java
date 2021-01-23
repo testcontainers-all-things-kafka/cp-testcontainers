@@ -43,7 +43,7 @@ public class KsqlDBContainerRbacTest {
         startAll(ldap, kafka);
 
         final var ksqlDB = containerFactory.createKsqlDB(kafka)
-                .enableRbac("http://kafka:8090", ksql, ksqlSecret);
+                .enableRbac(kafka.getMdsUrl(), ksql, ksqlSecret);
         ksqlDB.withServiceId("ksql");
         ksqlDB.withStartupTimeout(Duration.ofMinutes(1));
 
@@ -147,7 +147,7 @@ public class KsqlDBContainerRbacTest {
 
         final String ksqlClusterId = "uppercase-ksql";
         final var ksqlDB = containerFactory.createKsqlDB(kafka)
-                .enableRbac("http://kafka:8090", ksql, ksqlSecret);
+                .enableRbac(kafka.getMdsUrl(), ksql, ksqlSecret);
         ksqlDB.withServiceId(ksqlClusterId);
         ksqlDB.withStartupTimeout(Duration.ofMinutes(1));
 

@@ -36,7 +36,9 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
 
 
     public SchemaRegistryContainer enableRbac() {
-        return enableRbac("http://kafka:8090", "sr-user", "sr-user-secret");
+        if (! (bootstrap instanceof ConfluentServerContainer))
+            throw new IllegalStateException("rbac requires a ConfluenServerContainer as bootstrap");
+        return enableRbac(((ConfluentServerContainer) bootstrap).getMdsUrl(), "sr-user", "sr-user-secret");
     }
 
 

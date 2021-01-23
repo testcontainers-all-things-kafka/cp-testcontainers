@@ -166,9 +166,14 @@ public class CPTestContainerFactory {
         }
     }
 
-    String generateRandom (int lenght) {
+    /**
+     * Generate a random string of given lengtj.
+     * @param length of the String to be generated
+     * @return a random lowercase string
+     */
+    String generateRandom (int length) {
         return new Random()
-                .ints(lenght, 'a', 'z' + 1)
+                .ints(length, 'a', 'z' + 1)
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                 .toString();
     }
@@ -181,6 +186,7 @@ public class CPTestContainerFactory {
 
         zk.start();// starting zk is necessary to configure zookeeper connect
         final int rf = Math.min(3, numBrokers);
+        final var clusterPrefix = generateRandom(7);
 
         final var kafkas = IntStream.rangeClosed(1, numBrokers).mapToObj(id ->
                 createKafka().
@@ -188,11 +194,10 @@ public class CPTestContainerFactory {
                         dependsOn(zk).
                         withExternalZookeeper(zk.getInternalConnect()).
                         withEnv("KAFKA_BROKER_ID", "" + id).
-                        withNetworkAliases("kafka-" + id) // we should add a prefix here
+                        withNetworkAliases(clusterPrefix + "-kafka-" + id)
         ).map(
                 kafkaContainer -> KafkaContainerTools.adjustReplicationFactors(kafkaContainer, rf)
         ).collect(Collectors.toList());
-        kafkas.get(0).withNetworkAliases("kafka", "kafka-0"); //TODO: remove this hack
         return new ClusterSpec<>(List.of(zk), kafkas);
     }
 
@@ -204,19 +209,19 @@ public class CPTestContainerFactory {
 
         zk.start();// starting zk is necessary to configure zookeeper connect
         final int rf = Math.min(3, numServers);
+        final var clusterPrefix = generateRandom(7);
 
-        final var kafkas = IntStream.rangeClosed(1, numServers).mapToObj(id ->
+        final var servers = IntStream.rangeClosed(1, numServers).mapToObj(id ->
                 (ConfluentServerContainer)createConfluentServer().
                         withNetwork(network).
                         dependsOn(zk).
                         withExternalZookeeper(zk.getInternalConnect()).
                         withEnv("KAFKA_BROKER_ID", "" + id).
-                        withNetworkAliases("kafka-" + id) // we should add a prefix here
+                        withNetworkAliases(clusterPrefix + "cp-server-" + id)
         ).map(
                 kafkaContainer -> KafkaContainerTools.adjustReplicationFactors(kafkaContainer, rf)
         ).collect(Collectors.toList());
-        kafkas.get(0).withNetworkAliases("kafka", "kafka-0"); //TODO: remove this hack -- only necessary because we use the kafka hostname hardcoded
-        return new ClusterSpec<>(List.of(zk), kafkas);
+        return new ClusterSpec<>(List.of(zk), servers);
     }
 }
 
