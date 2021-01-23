@@ -242,7 +242,6 @@ public class AuditLogTest {
         auditLogConsumer.subscribe(List.of("confluent-audit-log-events"));
         final var logEvents = auditLogConsumer.consumeUntil(1000, Duration.ofSeconds(2), 5);
         logEvents.forEach(System.out::println);
-
     }
 }
 

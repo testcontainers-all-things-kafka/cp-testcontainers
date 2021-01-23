@@ -16,8 +16,8 @@ public class ConfluentServerContainer extends KafkaContainer {
     final String admin = "admin";
     final String adminSecret = "admin-secret";
 
-    public ConfluentServerContainer(String tag) {
-        super(DockerImageName.parse("confluentinc/cp-server:" + tag).asCompatibleSubstituteFor("confluentinc/cp-kafka"));
+    public ConfluentServerContainer(String repository, String tag) {
+        super(DockerImageName.parse(repository + "/cp-server:" + tag).asCompatibleSubstituteFor(repository + "/cp-kafka"));
         withExposedPorts(mdsPort, KafkaContainer.KAFKA_PORT); //mdsPort doubles as port for embedded (admin, V3) REST proxy
         withStartupTimeout(Duration.ofMinutes(4));
 
@@ -59,8 +59,9 @@ public class ConfluentServerContainer extends KafkaContainer {
 
         final String containerCertPath = "/tmp/conf";
         final String localCertPath = "src/main/resources/certs";
-        final String brokerNetworkAlias = "kafka";
 
+        // this should be set for all Kafka container at startup-time already
+        final String brokerNetworkAlias = "kafka"; //getNetworkAliases().get(0);
         withNetworkAliases(brokerNetworkAlias);
         withFileSystemBind(localCertPath, containerCertPath);  //copy certificates
 
@@ -83,7 +84,6 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", PLAIN);
         withEnv(pToEKafka("listener.name.plaintext.plain.sasl.server.callback.handler.class"), "io.confluent.security.auth.provider.ldap.LdapAuthenticateCallbackHandler");
         withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", plainJaas(admin, adminSecret));
-//        withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", "org.apache.kafka.common.security.plain.PlainLoginModule required;");
         // these docs: https://docs.confluent.io/platform/current/kafka/authentication_sasl/client-authentication-ldap.html only provide "org.apache.kafka.common.security.plain.PlainLoginModule required;"
         // set up authorizer
         withEnv(pToEKafka("authorizer.class.name"), "io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer");
@@ -93,7 +93,7 @@ public class ConfluentServerContainer extends KafkaContainer {
         withEnv(pToEKafka("confluent.metadata.sasl.jaas.config"), plainJaas("mds", "mds-secret"));
         withEnv(mdsPrefix("authentication.method"), "BEARER");
         withEnv(mdsPrefix("listeners"), "http://0.0.0.0:8090");
-        withEnv(mdsPrefix("advertised.listeners"), "http://kafka:8090");
+        withEnv(mdsPrefix("advertised.listeners"), String.format("http://%s:8090", brokerNetworkAlias));
         withEnv(mdsPrefix("token.auth.enable"), "true");
         withEnv(mdsPrefix("token.max.lifetime.ms"), "7200000"); //TODO: had to set it to 2 hours to prevent re-login problems: look into this!
         withEnv(mdsPrefix("token.signature.algorithm"), "RS256");

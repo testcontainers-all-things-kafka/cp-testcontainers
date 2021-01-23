@@ -37,7 +37,9 @@ public class LocalStackIntTest {
                 .withNetworkAliases("localstack");
 
         final var kafka = factory.createKafka();
-        final var connect = factory.createCustomConnector(Set.of("confluentinc/kafka-connect-s3:latest", "confluentinc/kafka-connect-datagen:0.4.0"), kafka);
+        final var connect = factory.createCustomConnector(Set.of(
+                "confluentinc/kafka-connect-s3:latest",
+                "confluentinc/kafka-connect-datagen:0.4.0"), kafka);
         connect.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         connect.withEnv("AWS_ACCESS_KEY", localstack.getAccessKey());
         connect.withEnv("AWS_SECRET_KEY", localstack.getSecretKey());
