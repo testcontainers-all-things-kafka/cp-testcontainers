@@ -2,12 +2,14 @@ package net.christophschubert.cp.testcontainers;
 
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.*;
-
-import static net.christophschubert.cp.testcontainers.SecurityConfigs.PLAIN;
-import static net.christophschubert.cp.testcontainers.SecurityConfigs.plainJaas;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class CPTestContainerFactory {
 
@@ -53,7 +55,7 @@ public class CPTestContainerFactory {
 
 
     public ConfluentServerContainer createConfluentServer() {
-        return (ConfluentServerContainer) new ConfluentServerContainer(tag).withNetwork(network);
+        return (ConfluentServerContainer) new ConfluentServerContainer(repository, tag).withNetwork(network);
     }
 
     public SchemaRegistryContainer createSchemaRegistry(KafkaContainer bootstrap) {
@@ -137,5 +139,84 @@ public class CPTestContainerFactory {
     }
 
 
+    public static class ClusterSpec<C extends KafkaContainer> {
+        public final List<ZooKeeperContainer> zks;
+        public final List<C> kafkas;
+
+        public ClusterSpec(List<ZooKeeperContainer> zks, List<C> kafkas) {
+            this.zks = zks;
+            this.kafkas = kafkas;
+        }
+
+        public void startAll() {
+            try {
+                Startables.deepStart(kafkas).get();
+            } catch (InterruptedException | ExecutionException e) {
+                final var msg = String.format("Error starting up %s", kafkas);
+                throw new RuntimeException(msg, e.getCause());
+            };
+        }
+
+        public String getInternalBootstrap() {
+            return null;
+        }
+
+        public String getBootstrap() {
+            return kafkas.stream().map(c -> "localhost:" + c.getMappedPort(KafkaContainer.KAFKA_PORT)).collect(Collectors.joining(","));
+        }
+    }
+
+    String generateRandom (int lenght) {
+        return new Random()
+                .ints(lenght, 'a', 'z' + 1)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
+    public ClusterSpec<KafkaContainer> createKafkaCluster(int numBrokers) {
+        if (numBrokers < 1) {
+            throw new IllegalArgumentException(String.format("numBrokers should be non-negative (was %d)", numBrokers));
+        }
+        final ZooKeeperContainer zk = new ZooKeeperContainer(repository, tag).withNetwork(network);
+
+        zk.start();// starting zk is necessary to configure zookeeper connect
+        final int rf = Math.min(3, numBrokers);
+
+        final var kafkas = IntStream.rangeClosed(1, numBrokers).mapToObj(id ->
+                createKafka().
+                        withNetwork(network).
+                        dependsOn(zk).
+                        withExternalZookeeper(zk.getInternalConnect()).
+                        withEnv("KAFKA_BROKER_ID", "" + id).
+                        withNetworkAliases("kafka-" + id) // we should add a prefix here
+        ).map(
+                kafkaContainer -> KafkaContainerTools.adjustReplicationFactors(kafkaContainer, rf)
+        ).collect(Collectors.toList());
+        kafkas.get(0).withNetworkAliases("kafka", "kafka-0"); //TODO: remove this hack
+        return new ClusterSpec<>(List.of(zk), kafkas);
+    }
+
+    public ClusterSpec<ConfluentServerContainer> createConfluentServerCluster(int numServers) {
+        if (numServers < 1) {
+            throw new IllegalArgumentException(String.format("numBrokers should be non-negative (was %d)", numServers));
+        }
+        final ZooKeeperContainer zk = new ZooKeeperContainer(repository, tag).withNetwork(network);
+
+        zk.start();// starting zk is necessary to configure zookeeper connect
+        final int rf = Math.min(3, numServers);
+
+        final var kafkas = IntStream.rangeClosed(1, numServers).mapToObj(id ->
+                (ConfluentServerContainer)createConfluentServer().
+                        withNetwork(network).
+                        dependsOn(zk).
+                        withExternalZookeeper(zk.getInternalConnect()).
+                        withEnv("KAFKA_BROKER_ID", "" + id).
+                        withNetworkAliases("kafka-" + id) // we should add a prefix here
+        ).map(
+                kafkaContainer -> KafkaContainerTools.adjustReplicationFactors(kafkaContainer, rf)
+        ).collect(Collectors.toList());
+        kafkas.get(0).withNetworkAliases("kafka", "kafka-0"); //TODO: remove this hack -- only necessary because we use the kafka hostname hardcoded
+        return new ClusterSpec<>(List.of(zk), kafkas);
+    }
 }
 
