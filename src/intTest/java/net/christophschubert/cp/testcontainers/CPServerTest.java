@@ -145,7 +145,7 @@ public class CPServerTest {
 
         mdsWrapper.grantRoleOnCluster(srUser, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId());
 
-        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, "_schemas");
+        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, sr.getSchemasTopic());
         mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Group, sr.getClusterId());
 
         for (var role : List.of(DeveloperRead, DeveloperWrite)) {
@@ -173,10 +173,10 @@ public class CPServerTest {
 
         final var cpServer = factory.createConfluentServer().enableRbac();
 
-        final var mdsBootstrap = String.format("http://%s:8090", cpServer.getNetworkAliases().get(0));
+//        final var mdsBootstrap = String.format("http://%s:8090", cpServer.getNetworkAliases().get(0));
         final var sr = factory
                 .createSchemaRegistry(cpServer)
-                .enableRbac(mdsBootstrap, "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
+                .enableRbac(cpServer.getMdsUrl(), "alice", "alice-secret"); //alice is an implicit super-user in the Kafka cluster
         startAll(cpServer, ldap, sr);
 
 
@@ -187,7 +187,7 @@ public class CPServerTest {
         mdsWrapper.grantRoleOnCluster(srUser, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId());
 
         mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Group, sr.getClusterId());
-        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, "_schemas");
+        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, sr.getSchemasTopic());
 
         for (var role : List.of(DeveloperRead, DeveloperWrite)) {
             mdsWrapper.grantRoleOnKafkaResource(srUser, role, Topic, cpServer.licenseTopic());
@@ -280,7 +280,7 @@ public class CPServerTest {
         final var srPrincipal = "sr-user";
 
         mdsWrapper.grantRoleOnCluster(srPrincipal, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, schemaRegistry.getClusterId());
-        mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Topic, "_schemas");
+        mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Topic, schemaRegistry.getSchemasTopic());
         mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Group, schemaRegistry.getClusterId());
         for (var role : List.of(DeveloperRead, DeveloperWrite)) {
             mdsWrapper.grantRoleOnKafkaResource(srPrincipal, role, Topic, cpServer.licenseTopic());

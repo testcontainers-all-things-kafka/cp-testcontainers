@@ -6,14 +6,20 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
+import java.util.Objects;
 
 import static net.christophschubert.cp.testcontainers.ContainerConfigs.CUB_CLASSPATH;
 import static net.christophschubert.cp.testcontainers.SecurityConfigs.*;
 
+/**
+ * Testcontainer for the Confluent Schema Registry.
+ *
+ */
 public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryContainer> {
 
     static final int defaultPort = 8081;
     private String clusterId = "schema-registry";
+    private String schemasTopic = "_schemas";
 
     SchemaRegistryContainer(DockerImageName imageName, KafkaContainer bootstrap, Network network) {
         super(imageName, bootstrap, network, defaultPort, "SCHEMA_REGISTRY");
@@ -24,7 +30,13 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         withProperty("listeners", getHttpPortListener());
     }
 
+    /**
+     * Sets the schema.registry.group.id property, which is, e.g., used in RBAC as the ID of the schema registry.
+     * @param clusterId clusterId to set
+     * @return this container (fluent interface)
+     */
     public SchemaRegistryContainer withClusterId(String clusterId) {
+        Objects.requireNonNull(clusterId);
         this.clusterId = clusterId;
         withProperty("schema.registry.group.id", clusterId);
         return this;
@@ -34,10 +46,20 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         return clusterId;
     }
 
+    public SchemaRegistryContainer withSchemasTopic(String schemasTopic) {
+        Objects.requireNonNull(schemasTopic);
+        this.schemasTopic = schemasTopic;
+        withProperty("kafkastore.topic", schemasTopic);
+        return this;
+    }
+
+    public String getSchemasTopic() {
+        return schemasTopic;
+    }
 
     public SchemaRegistryContainer enableRbac() {
         if (! (bootstrap instanceof ConfluentServerContainer))
-            throw new IllegalStateException("rbac requires a ConfluenServerContainer as bootstrap");
+            throw new IllegalStateException("rbac requires a ConfluentServerContainer as bootstrap");
         return enableRbac(((ConfluentServerContainer) bootstrap).getMdsUrl(), "sr-user", "sr-user-secret");
     }
 
@@ -59,7 +81,7 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
 
         withProperties(confluentMdsSettings(srPrincipal, srSecret, mdsBootstrap));
 
-        withProperty("public.key.path", getPublicKeyPath()); //
+        withProperty("public.key.path", getPublicKeyPath());
 
         // TODO: compare with
         // https://github.com/confluentinc/cp-demo/blob/6.0.1-post/docker-compose.yml

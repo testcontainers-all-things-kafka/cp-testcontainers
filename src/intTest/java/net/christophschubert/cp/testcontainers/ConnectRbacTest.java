@@ -117,7 +117,7 @@ public class ConnectRbacTest {
         mdsWrapper.grantRoleOnCluster(srPrincipal, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, schemaRegistry.getClusterId());
 
         mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Group, schemaRegistry.getClusterId());
-        mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Topic, "_schemas");
+        mdsWrapper.grantRoleOnKafkaResource(srPrincipal, ResourceOwner, Topic, schemaRegistry.getSchemasTopic());
         for (var role : List.of(DeveloperRead, DeveloperWrite)) {
             mdsWrapper.grantRoleOnKafkaResource(srPrincipal, role, Topic, cpServer.licenseTopic());
         }
