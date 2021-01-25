@@ -8,38 +8,60 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static net.christophschubert.cp.testcontainers.SecurityConfigs.*;
 
 public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer> {
 
     static final int defaultPort = 8083;
     private static final String PROPERTY_PREFIX = "CONNECT";
 
+    private final String configsPostfix = "-configs";
+    private final String offsetsPostfix = "-offsets";
+    private final String statusPostfix = "-status";
+
+
+    private String clusterId = "connect";
+
+    public Set<String> getInternalTopics() {
+        return Set.of(
+                clusterId + configsPostfix, clusterId + offsetsPostfix, clusterId + statusPostfix
+        );
+    }
+
+    public KafkaConnectContainer withReplicationFactors(int rf) {
+        withProperty("replication.factor", rf);
+        withProperty("confluent.topic.replication.factor", rf);
+        withProperty("config.storage.replication.factor", rf);
+        withProperty("offset.storage.replication.factor", rf);
+        withProperty("status.storage.replication.factor", rf);
+        return this;
+    }
+
+    public KafkaConnectContainer withClusterId(String clusterId) {
+        withProperty("group.id", clusterId);
+        withProperty("config.storage.topic", clusterId + configsPostfix);
+        withProperty("offset.storage.topic", clusterId + offsetsPostfix);
+        withProperty("status.storage.topic", clusterId + statusPostfix);
+        return this;
+    }
+
+    public String getClusterId() {
+        return clusterId;
+    }
+
     private void _configure(KafkaContainer bootstrap) {
-        waitingFor(Wait.forHttp("/connectors").forStatusCode(200).forStatusCode(401));
-//        waitingFor(Wait.forHttp("/connectors"));
-        withNetworkAliases("connect");
+        waitingFor(Wait.forHttp("/connectors").forStatusCode(200).forStatusCode(401)); // 401 will be return if RBAC is configured
         withStartupTimeout(Duration.ofMinutes(5)); //Needs to be placed _after_ call to waitingFor
         withEnv("CONNECT_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
         withEnv("CONNECT_REST_PORT", "" + httpPort);
-        withEnv("CONNECT_GROUP_ID", "connect");
-        withEnv("CONNECT_REPLICATION_FACTOR", "1");
-        withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost");
+        withClusterId(clusterId);
+        withReplicationFactors(1);
+        withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost"); //TODO: change to getHost()
         withEnv("CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY", "All");
-        withEnv("CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR", "1");
         withEnv("CONNECT_LISTENERS", getHttpPortListener());
 //        withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "WARN");
     //    withEnv("CONNECT_LOG4J_LOGGERS", "org.eclipse.jetty=DEBUG,org.reflections=ERROR,org.apache.kafka.connect=DEBUG");
-        withEnv("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1");
-        withEnv("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1");
-        withEnv("CONNECT_STATUS_STORAGE_REPLICATION_FACTOR", "1");
-        withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "connect-configs");
-        withEnv("CONNECT_OFFSET_STORAGE_TOPIC", "connect-offsets");
-        withEnv("CONNECT_STATUS_STORAGE_TOPIC", "connect-status");
         withEnv("CONNECT_PLUGIN_PATH", "/usr/share/java");
         withEnv("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
         withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");

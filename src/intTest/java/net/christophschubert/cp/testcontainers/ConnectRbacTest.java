@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import static io.restassured.RestAssured.given;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ClusterRole.SecurityAdmin;
@@ -27,21 +26,21 @@ public class ConnectRbacTest {
     final String alice = "alice";
     final String aliceSecret = "alice-secret";
 
-    void setUpAccess(ConfluentServerContainer cpServer, String connectPrincipal) {
+    void setUpAccess(ConfluentServerContainer cpServer, KafkaConnectContainer connect, String connectPrincipal) {
 
         final var mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), alice, aliceSecret);
 
         // configure general access for connect cluster
-        // TODO: add method to get clusterId from connectCluster
-        mdsWrapper.grantRoleOnCluster(connectPrincipal, SecurityAdmin, MdsRestWrapper.ClusterType.ConnectCluster, "connect");
+        mdsWrapper.grantRoleOnCluster(connectPrincipal, SecurityAdmin, MdsRestWrapper.ClusterType.ConnectCluster, connect.getClusterId());
 
         // add ClusterAdmin role so that we can view connector status
         // TODO: double check whether we need systemAdmin or ClusterAdmin or whether this is needed at all
-        mdsWrapper.grantRoleOnCluster(connectPrincipal, MdsRestWrapper.ClusterRole.SystemAdmin, MdsRestWrapper.ClusterType.ConnectCluster, "connect");
+        mdsWrapper.grantRoleOnCluster(connectPrincipal, MdsRestWrapper.ClusterRole.SystemAdmin, MdsRestWrapper.ClusterType.ConnectCluster, connect.getClusterId());
 
-        mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Group, "connect");
+        mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Group, connect.getClusterId());
 
-        for (var topicName : List.of("connect-configs", "connect-offsets", "connect-status")) {
+
+        for (var topicName : connect.getInternalTopics()) {
             mdsWrapper.grantRoleOnKafkaResource(connectPrincipal, ResourceOwner, Topic, topicName);
         }
 
@@ -62,7 +61,7 @@ public class ConnectRbacTest {
 
         startAll(ldap, cServer);
 
-        setUpAccess(cServer, connectPrincipal);
+        setUpAccess(cServer, connect, connectPrincipal);
 
         connect.start();
 
@@ -123,7 +122,7 @@ public class ConnectRbacTest {
         }
 
         // configure general access for connect cluster
-        setUpAccess(cpServer, connectPrincipal);
+        setUpAccess(cpServer, connect, connectPrincipal);
 
         startAll(connect, schemaRegistry);
 
@@ -131,7 +130,7 @@ public class ConnectRbacTest {
         //(see https://docs.confluent.io/platform/current/connect/rbac/connect-rbac-getting-started.html)
         final var connectorName = "datagen";
         final var topicName = "datagen";
-        mdsWrapper.grantRoleOnResource("bob", DeveloperManage, MdsRestWrapper.ClusterType.ConnectCluster, "connect", MdsRestWrapper.ResourceType.Connector, connectorName);
+        mdsWrapper.grantRoleOnResource("bob", DeveloperManage, MdsRestWrapper.ClusterType.ConnectCluster, connect.getClusterId(), MdsRestWrapper.ResourceType.Connector, connectorName);
 
         mdsWrapper.grantRoleOnResource("bob", ResourceOwner, MdsRestWrapper.ClusterType.SchemaRegistryCluster, schemaRegistry.getClusterId(), MdsRestWrapper.ResourceType.Subject, topicName + "-value");
 
