@@ -53,18 +53,18 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
     private void _configure(KafkaContainer bootstrap) {
         waitingFor(Wait.forHttp("/connectors").forStatusCode(200).forStatusCode(401)); // 401 will be return if RBAC is configured
         withStartupTimeout(Duration.ofMinutes(5)); //Needs to be placed _after_ call to waitingFor
-        withEnv("CONNECT_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
-        withEnv("CONNECT_REST_PORT", "" + httpPort);
+        withProperty("bootstrap.servers", getInternalBootstrap(bootstrap));
+        withProperty("rest.port", "" + httpPort);
         withClusterId(clusterId);
         withReplicationFactors(1);
-        withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost"); //TODO: change to getHost()
-        withEnv("CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY", "All");
-        withEnv("CONNECT_LISTENERS", getHttpPortListener());
+        withProperty("rest.advertised.host.name", "localhost"); //TODO: change to getHost()
+        withProperty("connector.client.config.override.policy", "All");
+        withProperty("listeners", getHttpPortListener());
 //        withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "WARN");
     //    withEnv("CONNECT_LOG4J_LOGGERS", "org.eclipse.jetty=DEBUG,org.reflections=ERROR,org.apache.kafka.connect=DEBUG");
-        withEnv("CONNECT_PLUGIN_PATH", "/usr/share/java");
-        withEnv("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
-        withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
+        withProperty("plugin.path", "/usr/share/java");
+        withProperty("key.converter", "org.apache.kafka.connect.json.JsonConverter");
+        withProperty("value.converter", "org.apache.kafka.connect.json.JsonConverter");
     }
 
     KafkaConnectContainer(DockerImageName dockerImageName, KafkaContainer bootstrap, Network network) {
