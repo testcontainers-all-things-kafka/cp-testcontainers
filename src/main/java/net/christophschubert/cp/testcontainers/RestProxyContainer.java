@@ -17,9 +17,14 @@ public class RestProxyContainer extends CPTestContainer<RestProxyContainer> {
     }
 
     public RestProxyContainer withSchemaRegistry(SchemaRegistryContainer schemaRegistry) {
-        withEnv("KAFKA_REST_SCHEMA_REGISTRY_URL", schemaRegistry.getInternalBaseUrl());
+        withProperty("schema.registry.url", schemaRegistry.getInternalBaseUrl());
         dependsOn(schemaRegistry);
         return this;
     }
 
+    @Override
+    public CPTestContainer<RestProxyContainer> withLogLevel(String logLevel) {
+        //TODO: find out how to configure logging
+        return this;
+    }
 }

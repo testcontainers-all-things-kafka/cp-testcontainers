@@ -88,4 +88,9 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         return this;
     }
 
+    @Override
+    public CPTestContainer<SchemaRegistryContainer> withLogLevel(String logLevel) {
+        //TODO: find out how to configure logging
+        return this;
+    }
 }

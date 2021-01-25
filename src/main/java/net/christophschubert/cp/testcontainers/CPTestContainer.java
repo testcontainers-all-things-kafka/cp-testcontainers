@@ -61,6 +61,9 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
         return this;
     }
 
+    public abstract CPTestContainer<SELF> withLogLevel(String logLevel);
+
+
     public String getBaseUrl() {
         return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(httpPort));
     }

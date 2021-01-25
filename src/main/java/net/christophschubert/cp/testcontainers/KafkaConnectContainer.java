@@ -60,7 +60,6 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         withProperty("rest.advertised.host.name", "localhost"); //TODO: change to getHost()
         withProperty("connector.client.config.override.policy", "All");
         withProperty("listeners", getHttpPortListener());
-//        withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "WARN");
     //    withEnv("CONNECT_LOG4J_LOGGERS", "org.eclipse.jetty=DEBUG,org.reflections=ERROR,org.apache.kafka.connect=DEBUG");
         withProperty("plugin.path", "/usr/share/java");
         withProperty("key.converter", "org.apache.kafka.connect.json.JsonConverter");
@@ -97,4 +96,9 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
     }
 
 
+    @Override
+    public CPTestContainer<KafkaConnectContainer> withLogLevel(String logLevel) {
+        withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", logLevel);
+        return this;
+    }
 }

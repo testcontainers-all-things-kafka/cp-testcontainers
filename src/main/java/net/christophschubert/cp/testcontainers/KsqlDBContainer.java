@@ -105,7 +105,6 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         // TODO: this property was configures in some of the sources: a google search yields no results: double-check
         withProperty("confluent.metadata.basic.auth.credentials.provider", USER_INFO);
         //access to connect seems to be missing
-        withEnv("KSQL_LOG4J_ROOT_LOGLEVEL", "INFO");
 
         withProperty("ksql.schema.registry.basic.auth.credentials.source", USER_INFO); //not mentioned in https://docs.confluent.io/platform/current/security/rbac/ksql-rbac.html
         withProperty("ksql.schema.registry.basic.auth.user.info",ksqlPrincipal + ":" + ksqlSecret);
@@ -114,6 +113,12 @@ public class KsqlDBContainer extends CPTestContainer<KsqlDBContainer> {
         // maybe use this as the default health check
         waitingFor(Wait.forLogMessage(".*INFO Server up and running.*", 1));
 
+        return this;
+    }
+
+    @Override
+    public CPTestContainer<KsqlDBContainer> withLogLevel(String logLevel) {
+        withEnv("KSQL_LOG4J_ROOT_LOGLEVEL", logLevel);
         return this;
     }
 }
