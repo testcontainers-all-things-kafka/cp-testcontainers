@@ -9,6 +9,11 @@ version = '0.2.0-SNAPSHOT'
 
 sourceCompatibility = 1.11
 
+ext {
+    confluentVersion = '6.2.0'
+    kafkaVersion = '2.8.0'
+}
+
 repositories {
     mavenCentral()
 
@@ -44,10 +49,10 @@ check.dependsOn integrationTest
 dependencies {
 
 
-    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.6.0'
-    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.6.0'
+    compile group: 'org.apache.kafka', name: 'connect-api', version: kafkaVersion
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
 
-    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '6.0.0'
+    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: confluentVersion
 
     compile "org.testcontainers:testcontainers:1.15.1"
     compile "org.testcontainers:kafka:1.15.1"

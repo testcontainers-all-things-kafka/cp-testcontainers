@@ -15,7 +15,7 @@ public class CPTestContainerFactory {
 
     String repository = "confluentinc";
 
-    String tag = "6.0.1";
+    String tag = "6.2.0";
 
     final Network network;
 
