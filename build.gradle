@@ -40,17 +40,21 @@ task integrationTest(type: Test) {
 
 check.dependsOn integrationTest
 
+ext {
+    confluentVersion = '6.2.0'
+    kafkaVersion = '2.8.0'
+    testContainerVersion = "1.15.1"
+}
 
 dependencies {
 
+    compile group: 'org.apache.kafka', name: 'connect-api', version: kafkaVersion
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
 
-    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.6.0'
-    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.6.0'
+    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: confluentVersion
 
-    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '6.0.0'
-
-    compile "org.testcontainers:testcontainers:1.15.1"
-    compile "org.testcontainers:kafka:1.15.1"
+    compile group: 'org.testcontainers', name: 'testcontainers', version: testContainerVersion
+    compile group: 'org.testcontainers', name: 'kafka', version: testContainerVersion
 
     compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.29'
 
@@ -59,13 +63,13 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 
 
+    intTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: testContainerVersion
     // for localstack/S3 connector integration test
-    intTestImplementation "org.testcontainers:localstack:1.15.1"
+    intTestImplementation group: 'org.testcontainers', name: 'localstack', version: testContainerVersion
     intTestImplementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.926'
     intTestImplementation group: 'software.amazon.awssdk', name: 's3', version: '2.15.53'
 
 
-    intTestImplementation "org.testcontainers:junit-jupiter:1.15.1"
 }
 
 test {
