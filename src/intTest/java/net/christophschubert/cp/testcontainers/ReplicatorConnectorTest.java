@@ -127,15 +127,13 @@ public class ReplicatorConnectorTest {
         var msgCount = 0;
 
         while(!waiter.found) {
-            for (int i = 0; i < 2; i++) {
-                final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(5000));
+            for (int i = 0; i < 2; ++i) {
+                final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(5_000));
                 for (ConsumerRecord<String, String> record : records) {
-                    System.out.println(record);
                     Assert.assertEquals(testValue, record.value());
                     ++msgCount;
                 }
             }
-
         }
         Assert.assertEquals(1, msgCount);
     }

@@ -15,7 +15,7 @@ public class CPTestContainerFactory {
 
     String repository = "confluentinc";
 
-    String tag = "6.0.1";
+    String tag = "7.0.1";
 
     final Network network;
 
@@ -120,7 +120,6 @@ public class CPTestContainerFactory {
     DockerImageName imageName(String componentName) {
         return DockerImageName.parse(String.format("%s/%s:%s", repository, componentName, tag));
     }
-
 
 
     /**

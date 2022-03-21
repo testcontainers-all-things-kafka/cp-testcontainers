@@ -27,9 +27,10 @@ public class SchemaRegistryContainerTest {
 
         final KafkaContainer kafka = testContainerFactory.createKafka();
         final SchemaRegistryContainer schemaRegistry = testContainerFactory.createSchemaRegistry(kafka);
-        schemaRegistry.start(); //will implicitly start kafka container
+        schemaRegistry.start(); //will implicitly start Kafka container
 
         RestAssured.port = schemaRegistry.getMappedHttpPort();
+
         given().
                 when().
                     get("/subjects").
