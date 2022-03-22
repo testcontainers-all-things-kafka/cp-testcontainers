@@ -59,10 +59,7 @@ public class ConnectDataGenKsqlDB {
 
 
         RestAssured.port = ksqlDB.getFirstMappedPort();
-
-        System.out.println("KsqlDB port" + ksqlDB.getFirstMappedPort());
-        System.out.println("Bootstrap port " + kafka.getBootstrapServers());
-
+        
         given()
                 .when()
                 .get("/info")

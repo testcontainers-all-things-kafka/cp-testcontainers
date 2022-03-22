@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class CPTestContainerFactory {
 
@@ -81,8 +80,8 @@ public class CPTestContainerFactory {
         return new KafkaConnectContainer(imageName("cp-enterprise-replicator"), bootstrap, network);
     }
 
-    public KafkaConnectContainer createCustomConnector(String hubConnector, KafkaContainer bootstrap) {
-        return createCustomConnector(Collections.singleton(hubConnector), bootstrap);
+    public KafkaConnectContainer createCustomConnector(String hubComponent, KafkaContainer bootstrap) {
+        return createCustomConnector(Collections.singleton(hubComponent), bootstrap);
     }
 
     public KafkaConnectContainer createCustomConnector(Set<String> hubComponents, KafkaContainer bootstrap) {
@@ -153,7 +152,7 @@ public class CPTestContainerFactory {
             } catch (InterruptedException | ExecutionException e) {
                 final var msg = String.format("Error starting up %s", kafkas);
                 throw new RuntimeException(msg, e.getCause());
-            };
+            }
         }
 
         public String getInternalBootstrap() {
@@ -166,7 +165,7 @@ public class CPTestContainerFactory {
     }
 
     /**
-     * Generate a random string of given lengtj.
+     * Generate a random string of given length.
      * @param length of the String to be generated
      * @return a random lowercase string
      */
