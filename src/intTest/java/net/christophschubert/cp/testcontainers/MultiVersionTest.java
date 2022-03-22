@@ -1,18 +1,102 @@
 package net.christophschubert.cp.testcontainers;
 
+import io.restassured.RestAssured;
+import net.christophschubert.cp.testcontainers.util.Tag;
 import org.junit.Test;
 
 import java.util.List;
 
+import static io.restassured.RestAssured.given;
+import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Demonstrates the use of withTag to set the CP version we want to start.
+ * <p>
+ * This test will pull a lot of different Docker image versions.
+ */
 public class MultiVersionTest {
+
+    // we test against the latest bug-fix version for each of the feature versions:
+    final List<String> allTags = List.of("5.4.6", "5.5.7", "6.0.5", "6.1.4", "6.2.2", "7.0.0", "7.0.1");
+
     @Test
-    public void skeleton() {
-        for (var tag : List.of("5.4.1", "5.5.1", "6.0.1")) {
+    public void vanillaKafka() throws InterruptedException {
+        for (final var tag : allTags) {
             final var factory = new CPTestContainerFactory().withTag(tag);
 
-            final var cServer = factory.createConfluentServer().enableRbac();
-            cServer.start();
-            // start the container and write some interesting assertion, see if they fail
+            final var kafka = factory.createKafka();
+            kafka.start();
+            Thread.sleep(3_000); //sleep to let logs accumulate
+            assertTrue(kafka.getLogs().contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)"));
+        }
+    }
+
+
+    @Test
+    public void server() throws InterruptedException {
+        for (final var tag : allTags) {
+            final var factory = new CPTestContainerFactory().withTag(tag);
+
+            final var cpServer = factory.createConfluentServer();
+            cpServer.start();
+            Thread.sleep(3_000);
+            final var logs = cpServer.getLogs();
+            assertTrue(logs.contains(String.format("INFO Kafka version: %s-ce", tag)));
+            assertTrue(logs.contains("INFO Kafka startTimeMs:"));
+            assertTrue(logs.contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)"));
+
+            RestAssured.port = cpServer.getMdsPort();
+
+            // Even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy
+            // embedded in Confluent Server.
+            given().
+                    when().
+                    get("/v1/metadata/id").
+                    then().
+                    statusCode(200).
+                    body("id", is(notNullValue()));
+        }
+    }
+
+
+    @Test
+    public void serverWithRbac() throws InterruptedException {
+        final var featuresEndpointAddedTag = new Tag("6"); // '/security/1.0/features' endpoint was added in CP 6.0.0
+
+        for (final var tag : allTags) {
+            final var factory = new CPTestContainerFactory().withTag(tag);
+            final var ldap = factory.createLdap();
+            final var cpServer = factory.createConfluentServer().enableRbac();
+            startAll(ldap, cpServer);
+
+            final var logs = cpServer.getLogs();
+            assertTrue(logs.contains(String.format("INFO Kafka version: %s-ce", tag)));
+            assertTrue(logs.contains("INFO Kafka startTimeMs:"));
+            assertTrue(logs.contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)"));
+
+            RestAssured.port = cpServer.getMdsPort();
+            // Even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy
+            // embedded in Confluent Server.
+            given().
+                    when().
+                    get("/v1/metadata/id").
+                    then().
+                    statusCode(200).
+                    body("id", is(notNullValue(String.class)));
+
+
+            if (new Tag(tag).atLeast(featuresEndpointAddedTag)) {
+                //check whether RBAC is enabled
+                given().
+                        when().
+                        get("/security/1.0/features").
+                        then().
+                        statusCode(200).
+                        body("features.'basic.auth.1.enabled'", is(true));
+            }
         }
     }
 }
