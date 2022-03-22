@@ -41,8 +41,8 @@ task integrationTest(type: Test) {
 check.dependsOn integrationTest
 
 ext {
-    confluentVersion = '6.2.0'
-    kafkaVersion = '2.8.0'
+    confluentVersion = '7.0.1'
+    kafkaVersion = '3.0.0'
     testContainerVersion = "1.15.1"
 }
 
