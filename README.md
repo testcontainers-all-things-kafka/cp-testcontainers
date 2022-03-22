@@ -84,3 +84,14 @@ See the [jitpack page](https://jitpack.io/#christophschubert/cp-testcontainers) 
 
 ## Noteworthy demos
 - [LocalStackIntTest](https://github.com/christophschubert/cp-testcontainers/blob/master/src/intTest/java/net/christophschubert/cp/testcontainers/LocalStackIntTest.java) shows how to setup S3 sink connector with S3 installation based on localstack.
+
+## Troubleshooting
+
+
+### No non-overlapping IPv4 addresses
+
+```
+Status 404: {"message":"could not find an available, non-overlapping IPv4 address pool among the defaults to assign to the network"}
+```
+
+Solution: use `docker network prune` to delete 
