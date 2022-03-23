@@ -43,7 +43,7 @@ check.dependsOn integrationTest
 ext {
     confluentVersion = '7.0.1'
     kafkaVersion = '3.0.0'
-    testContainerVersion = "1.15.1"
+    testContainerVersion = "1.15.3"
 }
 
 dependencies {
@@ -68,8 +68,6 @@ dependencies {
     intTestImplementation group: 'org.testcontainers', name: 'localstack', version: testContainerVersion
     intTestImplementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.926'
     intTestImplementation group: 'software.amazon.awssdk', name: 's3', version: '2.15.53'
-
-
 }
 
 test {
@@ -79,5 +77,3 @@ test {
 integrationTest {
    // forkEvery 1
 }
-
-

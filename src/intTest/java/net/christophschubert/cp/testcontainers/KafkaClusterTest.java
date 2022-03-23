@@ -34,7 +34,7 @@ public class KafkaClusterTest {
         kafkaCluster.startAll();
 
 
-        AdminClient adminClient = AdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaCluster.getBootstrap()));
+        final AdminClient adminClient = AdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaCluster.getBootstrap()));
         adminClient.createTopics(Set.of(new NewTopic("testtopic", 1, numBrokers).configs(Map.of("min.insync.replicas", "" + (numBrokers - 1))))).all().get();
 
         final var producer = TestClients.createProducer(kafkaCluster.getBootstrap(), Map.of(ProducerConfig.ACKS_CONFIG, "all", "retries", "10"));
