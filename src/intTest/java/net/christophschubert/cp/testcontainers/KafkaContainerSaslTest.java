@@ -6,7 +6,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.assertj.core.api.Assert;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -118,7 +117,7 @@ public class KafkaContainerSaslTest {
             assertThat(e.getCause() instanceof TopicAuthorizationException).isTrue();
             return;
         }
-        Assert.fail("Should have exited with ExecutionException");
+        fail("Should have exited with ExecutionException");
     }
 
 }
