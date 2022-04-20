@@ -1,5 +1,13 @@
 name: Run integration tests on PR
-on: pull_request
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
 
 jobs:
   gradle:
