@@ -1,16 +1,18 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.Tag;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Demonstrates the use of withTag to set the CP version we want to start.
@@ -30,7 +32,7 @@ public class MultiVersionTest {
             final var kafka = factory.createKafka();
             kafka.start();
             Thread.sleep(3_000); //sleep to let logs accumulate
-            assertTrue(kafka.getLogs().contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)"));
+            assertThat(kafka.getLogs().contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)")).isTrue();
         }
     }
 
@@ -44,9 +46,9 @@ public class MultiVersionTest {
             cpServer.start();
             Thread.sleep(3_000);
             final var logs = cpServer.getLogs();
-            assertTrue(logs.contains(String.format("INFO Kafka version: %s-ce", tag)));
-            assertTrue(logs.contains("INFO Kafka startTimeMs:"));
-            assertTrue(logs.contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)"));
+            assertThat(logs.contains(String.format("INFO Kafka version: %s-ce", tag))).isTrue();
+            assertThat(logs.contains("INFO Kafka startTimeMs:")).isTrue();
+            assertThat(logs.contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)")).isTrue();
 
             RestAssured.port = cpServer.getMdsPort();
 
@@ -73,9 +75,9 @@ public class MultiVersionTest {
             startAll(ldap, cpServer);
 
             final var logs = cpServer.getLogs();
-            assertTrue(logs.contains(String.format("INFO Kafka version: %s-ce", tag)));
-            assertTrue(logs.contains("INFO Kafka startTimeMs:"));
-            assertTrue(logs.contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)"));
+            assertThat(logs.contains(String.format("INFO Kafka version: %s-ce", tag))).isTrue();
+            assertThat(logs.contains("INFO Kafka startTimeMs:")).isTrue();
+            assertThat(logs.contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)")).isTrue();
 
             RestAssured.port = cpServer.getMdsPort();
             // Even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy

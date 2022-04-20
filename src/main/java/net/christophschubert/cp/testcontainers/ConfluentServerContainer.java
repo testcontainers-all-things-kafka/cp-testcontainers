@@ -66,7 +66,7 @@ public class ConfluentServerContainer extends KafkaContainer {
         final String localCertPath = "src/main/resources/certs";
 
         // this should be set for all Kafka container at startup-time already
-        final String brokerNetworkAlias = getContainerIpAddress();
+        final String brokerNetworkAlias = getHost();
         withFileSystemBind(localCertPath, containerCertPath);  //copy certificates
 
         withProperty("super.users", "User:admin;User:mds;User:alice");

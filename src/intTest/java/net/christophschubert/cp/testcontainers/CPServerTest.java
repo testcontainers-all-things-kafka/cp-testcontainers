@@ -1,9 +1,8 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecordBuilder;
@@ -11,19 +10,31 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.junit.Assert;
-import org.junit.Test;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.restassured.RestAssured;
 
 import static io.restassured.RestAssured.given;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ClusterRole.SecurityAdmin;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Group;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Topic;
-import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.*;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperRead;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperWrite;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.ResourceOwner;
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
-import static org.hamcrest.CoreMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Fail.fail;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 
 public class CPServerTest {
     // our super.user
@@ -224,16 +235,16 @@ public class CPServerTest {
 
         final var producer = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("alice", "alice-secret"));
         final var recordMetadata = producer.send(new ProducerRecord<>(topicName, "hello-world")).get();
-        Assert.assertThat(0L, is(recordMetadata.offset()));
+        assertThat(0L).isEqualTo(recordMetadata.offset());
         System.out.println(recordMetadata);
         final var producerNonAuth = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("alice", "alice-wrongpassword"));
         try {
             producerNonAuth.send(new ProducerRecord<>(topicName, "hello-world")).get();
         } catch (ExecutionException e) {
-            Assert.assertThat(e.getCause(), instanceOf(SaslAuthenticationException.class));
+            assertThat(e.getCause()).isInstanceOf(SaslAuthenticationException.class);
             return;
         }
-        Assert.fail();
+        fail(null);
     }
 
     @Test
@@ -249,9 +260,9 @@ public class CPServerTest {
 
         try {
             producer.send(new ProducerRecord<>(topicName, "never going to be produced value")).get();
-            Assert.fail(); // fail if no exception was thrown
+            fail(null); // fail if no exception was thrown
         } catch (ExecutionException e) {
-            Assert.assertThat(e.getCause(), instanceOf(TopicAuthorizationException.class));
+            assertThat(e.getCause()).isInstanceOf(TopicAuthorizationException.class);
         }
 
         var mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), "alice", "alice-secret");
@@ -259,7 +270,7 @@ public class CPServerTest {
         mdsWrapper.grantRoleOnKafkaResource("producer", ResourceOwner, Topic, topicName);
 
         final var recordMetadata = producer.send(new ProducerRecord<>(topicName, "hello-world")).get();
-        Assert.assertThat(0L, is(recordMetadata.offset()));
+        Assertions.assertThat(0L).isEqualTo(recordMetadata.offset());
         System.out.println(recordMetadata);
     }
 
@@ -306,18 +317,18 @@ public class CPServerTest {
 
         try {
             producer.send(new ProducerRecord<>(topicName, originalRecord)).get();
-            Assert.fail(); // exception should have been thrown
+            fail(null); // exception should have been thrown
         } catch (InterruptedException | ExecutionException | SerializationException e) {
             if (! (e.getCause() instanceof RestClientException))
-                Assert.fail("expecting RestClientException");
+                fail("expecting RestClientException");
             final RestClientException re = (RestClientException) e.getCause();
             System.out.println(e.getCause());
-            Assert.assertEquals(40301, re.getErrorCode());
+            assertThat(re.getErrorCode()).isEqualTo(40301);
         }
         mdsWrapper.grantRoleOnResource("producer", DeveloperWrite, MdsRestWrapper.ClusterType.SchemaRegistryCluster,
                 schemaRegistry.getClusterId(), MdsRestWrapper.ResourceType.Subject, topicName + "-value");
 
         final var recordMetadata = producer.send(new ProducerRecord<>(topicName, originalRecord)).get();
-        Assert.assertEquals(0, recordMetadata.offset());
+        assertThat(recordMetadata.offset()).isEqualTo(0);
     }
 }

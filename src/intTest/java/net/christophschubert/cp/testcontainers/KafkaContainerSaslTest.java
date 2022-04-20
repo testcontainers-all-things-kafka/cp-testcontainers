@@ -1,24 +1,29 @@
 package net.christophschubert.cp.testcontainers;
 
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.junit.Assert;
-import org.junit.Test;
+import org.assertj.core.api.Assert;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
+
 public class KafkaContainerSaslTest {
 
     final SalsPlainDecorator bobDecorator = new SalsPlainDecorator(Map.of("bob", "bob-secret"));
 
     //TODO: rewrite test to check for cause of exception
-    @Test(expected = ExecutionException.class)
+    @Test
     public void setupWithSaslProducerWithoutSaslFail() throws ExecutionException, InterruptedException {
         final CPTestContainerFactory factory = new CPTestContainerFactory();
         final SalsPlainDecorator decorator = new SalsPlainDecorator();
@@ -27,7 +32,10 @@ public class KafkaContainerSaslTest {
         kafka.start();
 
         final Producer<String, String> producer = TestClients.createProducer(kafka.getBootstrapServers());
-        producer.send(new ProducerRecord<>("testtopic", "value")).get(); // expected to fail as Jaas settings not configured
+        assertThatThrownBy(()->{
+            producer.send(new ProducerRecord<>("testtopic", "value")).get(); // expected to fail as Jaas settings not configured        
+        }).isInstanceOf(ExecutionException.class);
+    
     }
 
     @Test
@@ -43,10 +51,10 @@ public class KafkaContainerSaslTest {
         try {
             producer.send(new ProducerRecord<>("testtopic", "value")).get(); //should raise exception
         } catch (ExecutionException  e) {
-            Assert.assertTrue(e.getCause() instanceof AuthenticationException);
+            assertThat(e.getCause() instanceof AuthenticationException).isTrue();
             return;
         }
-        Assert.fail("Should have exited with ExecutionException");
+        fail("Should have exited with ExecutionException");
     }
 
 
@@ -68,8 +76,8 @@ public class KafkaContainerSaslTest {
         consumer.subscribe(List.of(topicName));
         final var values = consumer.consumeUntil(1, Duration.ofSeconds(5), 2);
 
-        Assert.assertEquals(1, values.size());
-        Assert.assertEquals("value", values.get(0));
+        assertThat(values).hasSize(1);
+        assertThat(values.get(0)).isEqualTo("value");
     }
 
     @Test
@@ -90,8 +98,8 @@ public class KafkaContainerSaslTest {
         consumer.subscribe(List.of(topicName));
         final var values = consumer.consumeUntil(1, Duration.ofSeconds(5), 2);
 
-        Assert.assertEquals(1, values.size());
-        Assert.assertEquals("value", values.get(0));
+        assertThat(values).hasSize(1);
+        assertThat(values.get(0)).isEqualTo("value");
 
     }
 
@@ -107,7 +115,7 @@ public class KafkaContainerSaslTest {
         try {
             producer.send(new ProducerRecord<>("testtopic", "value")).get(); //should raise exception
         } catch (ExecutionException e) {
-            Assert.assertTrue(e.getCause() instanceof TopicAuthorizationException);
+            assertThat(e.getCause() instanceof TopicAuthorizationException).isTrue();
             return;
         }
         Assert.fail("Should have exited with ExecutionException");

@@ -3,8 +3,9 @@ package net.christophschubert.cp.testcontainers;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;

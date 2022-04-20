@@ -1,12 +1,11 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,11 +13,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ClusterRole.SecurityAdmin;
-import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.*;
-import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.*;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Cluster;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Group;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Topic;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperManage;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperRead;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperWrite;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.ResourceOwner;
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class ConnectRbacTest {
 
@@ -185,6 +192,6 @@ public class ConnectRbacTest {
         consumer.subscribe(List.of(topicName));
         final var records = consumer.consumeUntil(100);
         System.out.println(records);
-        Assert.assertTrue(records.size() > 0);
+        assertThat(records.size() > 0).isTrue();
     }
 }

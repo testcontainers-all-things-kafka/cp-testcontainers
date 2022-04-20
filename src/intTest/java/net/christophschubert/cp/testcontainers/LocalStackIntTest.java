@@ -3,12 +3,19 @@ package net.christophschubert.cp.testcontainers;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
@@ -18,11 +25,7 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import static org.assertj.core.api.Assertions.assertThat;
 
 // test to start an S3 connector with LocalStack (https://www.testcontainers.org/modules/localstack/)
 public class LocalStackIntTest {
@@ -87,12 +90,12 @@ public class LocalStackIntTest {
         var msgCount = 0;
         for (S3Object s3Object : listObjectsResponse.contents()) {
             final var key = s3Object.key();
-            Assert.assertTrue(key.startsWith("topics/" + topicName));
+            assertThat(key.startsWith("topics/" + topicName)).isTrue();
             final var object = s3client.getObject(GetObjectRequest.builder().bucket(bucketName).key(key).build(), ResponseTransformer.toBytes()).asUtf8String();
             System.out.printf("%s -> %s", key, object);
             ++msgCount;
         }
-        Assert.assertEquals(numberMessages, msgCount);
+        assertThat(msgCount).isEqualTo(numberMessages);
     }
 
 }

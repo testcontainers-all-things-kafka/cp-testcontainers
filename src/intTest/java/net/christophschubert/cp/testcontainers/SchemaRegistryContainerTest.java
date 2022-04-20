@@ -1,21 +1,23 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
 
 import java.util.Collections;
 import java.util.List;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
 public class SchemaRegistryContainerTest {
@@ -53,7 +55,7 @@ public class SchemaRegistryContainerTest {
         consumer.subscribe(List.of(topicName));
         final var genericRecords = consumer.consumeUntil(1);
 
-        Assert.assertEquals(List.of(originalRecord), genericRecords);
+        assertThat(genericRecords).isEqualTo(List.of(originalRecord));
 
         given().
                 when().

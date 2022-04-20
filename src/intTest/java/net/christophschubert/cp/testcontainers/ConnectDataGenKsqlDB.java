@@ -1,18 +1,21 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.assertj.core.api.Assert;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
 public class ConnectDataGenKsqlDB {
@@ -55,7 +58,7 @@ public class ConnectDataGenKsqlDB {
         final TestClients.TestConsumer<String, String> consumer = TestClients.createConsumer(kafka.getBootstrapServers());
         consumer.subscribe(List.of(topicName));
 
-        Assert.assertEquals(numMessages,  consumer.consumeUntil(numMessages).size());
+        assertThat(numMessages).isEqualTo(consumer.consumeUntil(numMessages).size());
 
 
         RestAssured.port = ksqlDB.getFirstMappedPort();
