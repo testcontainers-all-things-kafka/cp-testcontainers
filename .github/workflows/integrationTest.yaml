@@ -13,10 +13,12 @@ jobs:
   gradle:
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        # TODO: make matrix work after
+        #os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest]
         java: [ '11', '17' ]
     runs-on: ${{ matrix.os }}
-    name: CP Testcontainers - build with ${{ matrix.Java }} on ${{ matrix.os }} 
+    name: Build with ${{ matrix.Java }} on ${{ matrix.os }} 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v2
@@ -28,4 +30,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Execute Gradle build
-        run: ./gradlew integrationTest
+        run: ./gradlew check
+        
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: "test-results/**/*.xml"
