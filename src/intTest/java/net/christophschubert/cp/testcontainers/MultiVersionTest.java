@@ -2,6 +2,7 @@ package net.christophschubert.cp.testcontainers;
 
 import net.christophschubert.cp.testcontainers.util.Tag;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -71,6 +72,7 @@ public class MultiVersionTest {
 
   @ParameterizedTest(name = "should start container (with Kafka v{0})")
   @MethodSource("getCpVersions")
+  @Disabled
   public void serverWithRbac(String tag) throws InterruptedException {
     final var featuresEndpointAddedTag = new Tag("6"); // '/security/1.0/features' endpoint was added in CP 6.0.0
 

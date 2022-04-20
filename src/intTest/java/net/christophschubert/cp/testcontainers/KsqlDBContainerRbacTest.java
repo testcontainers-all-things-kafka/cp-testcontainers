@@ -7,6 +7,7 @@ import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -29,6 +30,7 @@ import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.Resour
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
 import static org.hamcrest.CoreMatchers.is;
 
+@Disabled
 public class KsqlDBContainerRbacTest {
 
     static final String alice = "alice";

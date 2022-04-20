@@ -4,7 +4,6 @@ import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
 
-import org.assertj.core.api.Assert;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 

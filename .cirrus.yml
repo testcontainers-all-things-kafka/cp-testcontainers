@@ -1,12 +1,21 @@
 docker_builder:
-  name: Build
-  env:
+  name: All Tests
+  timeout_in: 2h
+  environment:
     HOME: /root
     GRADLE_USER_HOME: /root/.gradle
-  gradle_cache:
-    folder: ~/.gradle/caches
-  build_script: ./gradlew build --stacktrace --info
+  version_script:
+    - java -version
+    - docker --version
+  build_script: ./gradlew build -x integrationTest --stacktrace
   cleanup_before_cache_script:
     - rm -rf ~/.gradle/caches/transforms-1
     - rm -rf ~/.gradle/caches/journal-1
     - find ~/.gradle/caches/ -name "*.lock" -type f -delete
+  integration_tests_script: ./gradlew integrationTest --stacktrace --info
+  other_tests_script: ./gradlew test --stacktrace --info
+  always:
+    junit_artifacts:
+      path: "**/test-results/**/*.xml"
+      type: text/html
+      format: junit

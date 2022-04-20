@@ -11,6 +11,7 @@ import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -81,6 +82,7 @@ public class CPServerTest {
     }
 
     @Test
+    @Disabled
     public void startCPServerWithMdsLdap() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap();
@@ -140,6 +142,7 @@ public class CPServerTest {
     }
 
     @Test
+    @Disabled
     public void startRbacSchemaRegistry() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap();
@@ -178,6 +181,7 @@ public class CPServerTest {
     }
 
     @Test
+    @Disabled
     public void superUserShouldStartSRWithoutBinding() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap();
@@ -223,6 +227,7 @@ public class CPServerTest {
 
     // after enableRbac is called, clients should be able to authenticate towards Kafka with their LDAP credentials
     @Test
+    @Disabled
     public void superUserCanProducerUsingSaslPlain() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap(Set.of("alice", "mds", "producer", "consumer"));
@@ -248,6 +253,7 @@ public class CPServerTest {
     }
 
     @Test
+    @Disabled
     public void ldapAuthenticationWorksForClients() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap(Set.of("alice", "mds", "producer", "consumer"));
@@ -276,6 +282,7 @@ public class CPServerTest {
 
 
     @Test
+    @Disabled
     public void clientLdapAuthenticationWorksWithSchemaRegistry() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap(Set.of("alice", "mds", "sr-user", "producer", "consumer"));

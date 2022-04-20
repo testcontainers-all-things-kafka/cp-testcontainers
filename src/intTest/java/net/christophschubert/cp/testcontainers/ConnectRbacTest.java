@@ -5,6 +5,7 @@ import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.Resour
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+@Disabled
 public class ConnectRbacTest {
 
     // alice is our trusted admin

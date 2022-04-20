@@ -8,8 +8,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.NotEnoughReplicasException;
-
-import org.assertj.core.api.Assert;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

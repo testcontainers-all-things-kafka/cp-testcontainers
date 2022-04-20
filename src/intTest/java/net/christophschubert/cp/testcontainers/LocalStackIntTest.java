@@ -4,6 +4,7 @@ import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -28,6 +29,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import static org.assertj.core.api.Assertions.assertThat;
 
 // test to start an S3 connector with LocalStack (https://www.testcontainers.org/modules/localstack/)
+@Disabled
 public class LocalStackIntTest {
     @Test
     public void s3sinkConnectorTest() throws IOException, InterruptedException, ExecutionException {

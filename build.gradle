@@ -40,6 +40,7 @@ task integrationTest(type: Test) {
     shouldRunAfter test
 }
 
+integrationTest.dependsOn test
 check.dependsOn integrationTest
 
 ext {
@@ -80,6 +81,12 @@ test {
 
 integrationTest {
     useJUnitPlatform()
+    testLogging {
+        outputs.upToDateWhen { false }
+        showStandardStreams = false
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
    // forkEvery 1
 }
 
@@ -91,7 +98,7 @@ tasks.withType(JavaCompile) {
     ]
 }
 
-test {
+tasks.withType(Test) {
     testLogging {
         outputs.upToDateWhen { false }
         showStandardStreams = false
