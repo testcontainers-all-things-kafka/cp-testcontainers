@@ -5,10 +5,6 @@ import net.christophschubert.cp.testcontainers.util.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
 
 import java.util.stream.Stream;
 
@@ -26,6 +22,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
  * This test will pull a lot of different Docker image versions.
  */
 public class MultiVersionTest {
+  
 
   private static Stream<Arguments> getCpVersions() {
     // we test against the latest bug-fix version for each of the feature versions:
@@ -38,7 +35,7 @@ public class MultiVersionTest {
     final var factory = new CPTestContainerFactory().withTag(tag);
 
     final var kafka = factory.createKafka();
-    kafka.waitingFor(Wait.forLogMessage("INFO [KafkaServer id=1] started",1));
+    //kafka.waitingFor(Wait.forLogMessage("INFO [KafkaServer id=1] started",1));
     kafka.start();
     //Thread.sleep(3_000); //sleep to let logs accumulate
     assertThat(kafka.getLogs().contains("INFO [KafkaServer id=1] started (kafka.server.KafkaServer)")).isTrue();
@@ -51,7 +48,7 @@ public class MultiVersionTest {
     final var factory = new CPTestContainerFactory().withTag(tag);
 
     final var cpServer = factory.createConfluentServer();
-    cpServer.waitingFor(Wait.forLogMessage("INFO [KafkaServer id=1] started",1));
+    //cpServer.waitingFor(Wait.forLogMessage("INFO [KafkaServer id=1] started",1));
     cpServer.start();
     //Thread.sleep(3_000);
     final var logs = cpServer.getLogs();
