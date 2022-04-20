@@ -27,13 +27,7 @@ sourceSets {
 configurations {
     intTestImplementation.extendsFrom testImplementation
     intTestRuntimeOnly.extendsFrom testRuntimeOnly
-    
-    testImplementation {
-        /* only junit 5 should be used */
-        // but this used by TC (@ClassRule and etc)
-        //exclude group: 'junit', module: 'junit' 
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-    }
+  
 }
 
 task integrationTest(type: Test) {
@@ -82,6 +76,7 @@ test {
 }
 
 integrationTest {
+    useJUnitPlatform()
    // forkEvery 1
 }
 
