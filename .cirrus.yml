@@ -1,0 +1,12 @@
+docker_builder:
+  name: Build
+  env:
+    HOME: /root
+    GRADLE_USER_HOME: /root/.gradle
+  gradle_cache:
+    folder: ~/.gradle/caches
+  build_script: ./gradlew build --stacktrace --info
+  cleanup_before_cache_script:
+    - rm -rf ~/.gradle/caches/transforms-1
+    - rm -rf ~/.gradle/caches/journal-1
+    - find ~/.gradle/caches/ -name "*.lock" -type f -delete
