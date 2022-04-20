@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 
@@ -26,7 +27,7 @@ public class SplunkTest {
             withEnv("SPLUNK_USERNAME", "admin");
             withEnv("SPLUNK_PASSWORD", "password");
             withEnv("DEBUG", "true");
-            withFileSystemBind("src/intTest/resources/splunk-default.yml", "/tmp/defaults/default.yml");
+            withLogConsumer(o -> System.out.print(o.getUtf8String()));
         }
 
     }
@@ -45,6 +46,8 @@ public class SplunkTest {
 //        connect.withLogConsumer(o -> System.out.print(o.getUtf8String()));
 
         startAll(splunk, kafka, connect);
+        final MountableFile splunkConfig = MountableFile.forClasspathResource("splunk-default.yml");
+        splunk.copyFileToContainer(splunkConfig, "/tmp/defaults/default.yml");
 
         final var topicName = "splunk-qs";
         final var producer = TestClients.createProducer(kafka.getBootstrapServers());
