@@ -52,7 +52,7 @@ public class KsqlDBContainerTest {
 
     @Test
     public void setupKsqlDBWithFixedCustomImage() {
-        final var tag = "0.14.0";
+        final var tag = "0.24.0";
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
         final var kafka = containerFactory.createKafka();
