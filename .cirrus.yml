@@ -1,6 +1,6 @@
 compute_engine_instance:
   image_project: cirrus-images # GCP project
-  image: family/docker-kvm # family or a full image name.
+  #image: family/docker-kvm # family or a full image name.
   platform: linux
   cpu: 8 # Defaults to 2 CPUs.
   memory: 24G # Defaults to 4G.
