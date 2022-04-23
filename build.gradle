@@ -73,6 +73,10 @@ dependencies {
     intTestImplementation "org.testcontainers:localstack:$testContainerVersion"
     intTestImplementation "com.amazonaws:aws-java-sdk-core:1.11.926"
     intTestImplementation "software.amazon.awssdk:s3:2.15.53"
+
+    intTestCompileOnly 'org.projectlombok:lombok:1.18.24'
+    intTestAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
+
 }
 
 test {
@@ -106,3 +110,5 @@ tasks.withType(Test) {
         exceptionFormat "full"
     }
 }
+
+test.maxParallelForks = 4
