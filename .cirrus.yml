@@ -1,0 +1,29 @@
+compute_engine_instance:
+  image_project: cirrus-images # GCP project
+  image: family/docker-builder # family or a full image name.
+  platform: linux
+  cpu: 8 # Defaults to 2 CPUs.
+  memory: 24G # Defaults to 4G.
+  disk: 100 # By default, uses the smallest disk size required by the image.
+  nested_virtualization: true # optional. Whether to enable Intel VT-x. Defaults to false.
+task:
+  name: All Tests
+  timeout_in: 2h
+  environment:
+    HOME: /root
+    GRADLE_USER_HOME: /root/.gradle
+  version_script:
+    - java -version
+    - docker --version
+  build_script: ./gradlew build -x integrationTest --stacktrace
+  cleanup_before_cache_script:
+    - rm -rf ~/.gradle/caches/transforms-1
+    - rm -rf ~/.gradle/caches/journal-1
+    - find ~/.gradle/caches/ -name "*.lock" -type f -delete
+  integration_tests_script: ./gradlew integrationTest --stacktrace --info
+  other_tests_script: ./gradlew test --stacktrace --info
+  always:
+    junit_artifacts:
+      path: "**/test-results/**/*.xml"
+      type: text/html
+      format: junit

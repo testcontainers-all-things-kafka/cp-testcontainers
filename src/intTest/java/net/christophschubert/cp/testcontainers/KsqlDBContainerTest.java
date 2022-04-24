@@ -1,14 +1,14 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.restassured.RestAssured;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
 import net.christophschubert.cp.testcontainers.util.TestClients.TestConsumer;
+
 import org.apache.avro.generic.GenericRecord;
-import org.junit.Assert;
-import org.junit.Test;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.lifecycle.Startables;
 
@@ -19,8 +19,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlDBContainerTest {
 
@@ -48,7 +52,7 @@ public class KsqlDBContainerTest {
 
     @Test
     public void setupKsqlDBWithFixedCustomImage() {
-        final var tag = "0.14.0";
+        final var tag = "0.24.0";
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
         final var kafka = containerFactory.createKafka();
@@ -129,13 +133,13 @@ public class KsqlDBContainerTest {
                 .withServiceId(serviceId)
                 .withStartupTimeout(Duration.ofMinutes(5));
         ksqlDB.start();
-        Assert.assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
+        assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
 
         final TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
         consumer.subscribe(List.of("users_avro"));
 
         var messages = consumer.consumeUntil(5);
-        Assert.assertEquals(5, messages.size());
-        Assert.assertNotNull(messages.get(0).get("USERID"));
+        Assertions.assertThat(messages).hasSize(5);
+        Assertions.assertThat(messages.get(0).get("USERID")).isNotNull();
     }
 }

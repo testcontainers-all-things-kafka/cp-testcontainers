@@ -2,9 +2,11 @@ package net.christophschubert.cp.testcontainers;
 
 import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
@@ -17,6 +19,7 @@ import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaR
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.ResourceOwner;
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
 
+@Disabled
 public class AuditLogTest {
     @Test
     public void auditLogsAreEnabled() throws ExecutionException, InterruptedException {

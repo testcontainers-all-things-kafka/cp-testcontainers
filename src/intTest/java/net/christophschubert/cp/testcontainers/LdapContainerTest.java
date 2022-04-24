@@ -1,7 +1,8 @@
 package net.christophschubert.cp.testcontainers;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class LdapContainerTest {
     @Test
@@ -10,7 +11,7 @@ public class LdapContainerTest {
         ldap.start();
         final var logs = ldap.getLogs();
 
-        Assert.assertTrue(logs.contains("adding new entry \"cn=alice,ou=users,dc=confluent,dc=io\"\n"));
-        Assert.assertTrue(logs.contains("adding new entry \"cn=barney,ou=users,dc=confluent,dc=io\"\n"));
+        assertThat(logs.contains("adding new entry \"cn=alice,ou=users,dc=confluent,dc=io\"\n")).isTrue();
+        assertThat(logs.contains("adding new entry \"cn=barney,ou=users,dc=confluent,dc=io\"\n")).isTrue();
     }
 }

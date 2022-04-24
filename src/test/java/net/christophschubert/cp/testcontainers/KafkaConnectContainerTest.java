@@ -1,8 +1,7 @@
 package net.christophschubert.cp.testcontainers;
 
-import org.junit.Test;
 
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
 
 public class KafkaConnectContainerTest {
     @Test

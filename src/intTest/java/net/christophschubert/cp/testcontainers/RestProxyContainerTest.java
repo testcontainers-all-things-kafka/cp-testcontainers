@@ -1,15 +1,18 @@
 package net.christophschubert.cp.testcontainers;
 
-import io.restassured.RestAssured;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.lifecycle.Startables;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class RestProxyContainerTest {
 

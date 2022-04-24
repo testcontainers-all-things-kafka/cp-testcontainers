@@ -1,6 +1,6 @@
 # CP testcontainers
 
-[Testcontainer](https://www.testcontainers.org/) modules for Confluent Platform components.
+[Testcontainers](https://www.testcontainers.org/) modules for Confluent Platform components.
 
 
 ## Example

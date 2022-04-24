@@ -2,18 +2,18 @@ package net.christophschubert.cp.testcontainers;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CPTestContainerFactoryTest {
 
     @Test
     public void ptoETest() {
-        assertEquals("COMPONENT_TEST_PROPERTY", CPTestContainerFactory.pToE("COMPONENT", "test.property"));
+        assertThat(CPTestContainerFactory.pToE("COMPONENT", "test.property")).isEqualTo("COMPONENT_TEST_PROPERTY");
     }
 
     @Test
     public void pToEKafkaTest() {
-        assertEquals("KAFKA_TEST_PROPERTY", CPTestContainerFactory.pToEKafka("test.property"));
+        assertThat(CPTestContainerFactory.pToEKafka("test.property")).isEqualTo("KAFKA_TEST_PROPERTY");
     }
 
 

@@ -4,6 +4,7 @@ import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.ConnectorConfig;
 import net.christophschubert.cp.testcontainers.util.LogWaiter;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
@@ -13,8 +14,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 
@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ReplicatorConnectorTest {
     @Test
@@ -74,12 +76,12 @@ public class ReplicatorConnectorTest {
                 final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(5000));
                 for (ConsumerRecord<String, String> record : records) {
                     System.out.println(record);
-                    Assert.assertEquals(testValue, record.value());
+                    assertThat(record.value()).isEqualTo(testValue);
                     ++msgCount;
                 }
             }
         }
-        Assert.assertEquals(1, msgCount);
+        assertThat(msgCount).isEqualTo(1);
     }
 
     // quick test for configuring connectors
@@ -130,12 +132,12 @@ public class ReplicatorConnectorTest {
             for (int i = 0; i < 2; ++i) {
                 final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(5_000));
                 for (ConsumerRecord<String, String> record : records) {
-                    Assert.assertEquals(testValue, record.value());
+                    assertThat(record.value()).isEqualTo(testValue);
                     ++msgCount;
                 }
             }
         }
-        Assert.assertEquals(1, msgCount);
+        assertThat(msgCount).isEqualTo(1);
     }
 
 }

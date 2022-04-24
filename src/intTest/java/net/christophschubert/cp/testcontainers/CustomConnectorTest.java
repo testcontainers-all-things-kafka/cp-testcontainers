@@ -3,12 +3,14 @@ package net.christophschubert.cp.testcontainers;
 import net.christophschubert.cp.testcontainers.util.ConnectClient;
 import net.christophschubert.cp.testcontainers.util.DataGenConfig;
 import net.christophschubert.cp.testcontainers.util.TestClients;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class CustomConnectorTest {
     @Test
@@ -38,6 +40,6 @@ public class CustomConnectorTest {
         final TestClients.TestConsumer<String, String> consumer = TestClients.createConsumer(kafka.getBootstrapServers());
         consumer.subscribe(List.of(topicName));
 
-        Assert.assertEquals(numMessages,  consumer.consumeUntil(numMessages).size());
+        assertThat(consumer.consumeUntil(numMessages).size()).isEqualTo(numMessages);
     }
 }

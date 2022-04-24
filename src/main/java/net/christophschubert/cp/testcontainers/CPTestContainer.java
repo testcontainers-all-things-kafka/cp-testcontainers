@@ -65,7 +65,7 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
 
 
     public String getBaseUrl() {
-        return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(httpPort));
+        return String.format("http://%s:%d", getHost(), getMappedPort(httpPort));
     }
 
     public int getMappedHttpPort() {

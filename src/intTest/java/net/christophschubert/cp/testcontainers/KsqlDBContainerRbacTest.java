@@ -2,25 +2,35 @@ package net.christophschubert.cp.testcontainers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.restassured.RestAssured;
+
 import net.christophschubert.cp.testcontainers.util.MdsRestWrapper;
 import net.christophschubert.cp.testcontainers.util.TestClients;
+
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import io.restassured.RestAssured;
+
 import static io.restassured.RestAssured.given;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ClusterType.KsqlCluster;
-import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.*;
-import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.*;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Cluster;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Group;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.Topic;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.KafkaResourceType.TransactionalId;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperRead;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.DeveloperWrite;
+import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceRole.ResourceOwner;
 import static net.christophschubert.cp.testcontainers.util.MdsRestWrapper.ResourceType.KsqlClusterResource;
 import static net.christophschubert.cp.testcontainers.util.TestContainerUtils.startAll;
 import static org.hamcrest.CoreMatchers.is;
 
+@Disabled
 public class KsqlDBContainerRbacTest {
 
     static final String alice = "alice";
