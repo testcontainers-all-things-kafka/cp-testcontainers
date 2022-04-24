@@ -15,7 +15,7 @@ task:
   version_script:
     - java -version
     - docker --version
-  build_script: ./gradlew build -x integrationTest --stacktrace
+  build_script: ./gradlew clean -xtest assemble publishToMavenLocal
   cleanup_before_cache_script:
     - rm -rf ~/.gradle/caches/transforms-1
     - rm -rf ~/.gradle/caches/journal-1

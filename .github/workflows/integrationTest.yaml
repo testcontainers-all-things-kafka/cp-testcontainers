@@ -33,6 +33,9 @@ jobs:
       - name: Execute Gradle build
         run: ./gradlew --stacktrace --info check
 
+      - name: Build  jar for publishing
+        run: ./gradlew clean -xtest assemble publishToMavenLocal
+
 #      - name: Publish Test Results
 #        uses: EnricoMi/publish-unit-test-result-action@v1
 #        if: always()

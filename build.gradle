@@ -112,3 +112,15 @@ tasks.withType(Test) {
 }
 
 test.maxParallelForks = 4
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.getGroup()
+            artifactId = project.getName()
+            version = project.getVersion()
+
+            from components.java
+        }
+    }
+}
