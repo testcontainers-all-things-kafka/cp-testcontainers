@@ -45,38 +45,40 @@ public class CPServerTest {
     @Test
     public void createCPServerTest() {
         final var factory = new CPTestContainerFactory();
-        final var cpServer = factory.createConfluentServer();
+        try (var cpServer = factory.createConfluentServer()) {
 
-        cpServer.start();
-        RestAssured.port = cpServer.getMdsPort();
+            cpServer.start();
+            RestAssured.port = cpServer.getMdsPort();
 
-        // Even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy
-        // embedded in Confluent Server.
-        // See https://docs.confluent.io/platform/current/kafka-rest/api.html#crest-api-v3 for documentation on the API.
-        // TODO: question: how is this REST interface secured?
-        given().
-                when().
-                get("/v1/metadata/id").
-                then().
-                statusCode(200).
-                body("id", is(notNullValue()));
+            // Even without RBAC enabled we should be able to get the Kafka cluster ID as this is part of the REST proxy
+            // embedded in Confluent Server.
+            // See https://docs.confluent.io/platform/current/kafka-rest/api.html#crest-api-v3 for documentation on the API.
+            // TODO: question: how is this REST interface secured?
+            given().
+                    when().
+                    get("/v1/metadata/id").
+                    peek().
+                    then().
+                    statusCode(200).
+                    body("id", is(notNullValue()));
 
-        // REST proxy is enabled by default
-        given().
-                when().
-                get("/kafka/v3/clusters").
-                then().
-                statusCode(200).
-                log().all();
+            // REST proxy is enabled by default
+            given().
+                    when().
+                    get("/kafka/v3/clusters").
+                    then().
+                    statusCode(200).
+                    log().all();
 
-        // MDS API should return 404 as no security is configured by default.
-        given()
-                .when()
-                .get("/security/1.0/features")
-                .then()
-                .statusCode(404);
+            // MDS API should return 404 as no security is configured by default.
+            given()
+                    .when()
+                    .get("/security/1.0/features")
+                    .then()
+                    .statusCode(404);
 
-        TestClients.basicReadWriteTest(cpServer.getBootstrapServers());
+            TestClients.basicReadWriteTest(cpServer.getBootstrapServers());
+        }
         //TODO: even this basic test generates a ton of error messages since the _confluent_telemetry_enabled topic is created
         // with replication.factor=3. Should look into this!
     }
@@ -85,11 +87,13 @@ public class CPServerTest {
     @Disabled
     public void startCPServerWithMdsLdap() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
-        final var ldap = factory.createLdap();
+        final ConfluentServerContainer cpServer;
+        try (var ldap = factory.createLdap()) {
 
-        final var cpServer = factory.createConfluentServer().enableRbac();
+            cpServer = factory.createConfluentServer().enableRbac();
 
-        startAll(ldap, cpServer);
+            startAll(ldap, cpServer);
+        }
 
         RestAssured.port = cpServer.getMdsPort();
 
@@ -145,33 +149,36 @@ public class CPServerTest {
     @Disabled
     public void startRbacSchemaRegistry() throws ExecutionException, InterruptedException {
         final var factory = new CPTestContainerFactory();
-        final var ldap = factory.createLdap();
-        final var cpServer = factory.createConfluentServer().enableRbac();
-        startAll(cpServer, ldap);
+        final ConfluentServerContainer cpServer;
+        try (var ldap = factory.createLdap()) {
+            cpServer = factory.createConfluentServer().enableRbac();
+            startAll(cpServer, ldap);
+        }
 
         final MdsRestWrapper mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), alice, aliceSecret);
 
         final String srUser = "sr-user";
 
-        final var sr = factory.createSchemaRegistry(cpServer)
-                .enableRbac()
-                .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
+        try (var sr = factory.createSchemaRegistry(cpServer)
+            .enableRbac()
+            .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()))) {
 
-        mdsWrapper.grantRoleOnCluster(srUser, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId());
+            mdsWrapper.grantRoleOnCluster(srUser, SecurityAdmin, MdsRestWrapper.ClusterType.SchemaRegistryCluster, sr.getClusterId());
 
-        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, sr.getSchemasTopic());
-        mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Group, sr.getClusterId());
+            mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Topic, sr.getSchemasTopic());
+            mdsWrapper.grantRoleOnKafkaResource(srUser, ResourceOwner, Group, sr.getClusterId());
 
-        for (var role : List.of(DeveloperRead, DeveloperWrite)) {
-            mdsWrapper.grantRoleOnKafkaResource(srUser, role, Topic, cpServer.licenseTopic());
+            for (var role : List.of(DeveloperRead, DeveloperWrite)) {
+                mdsWrapper.grantRoleOnKafkaResource(srUser, role, Topic, cpServer.licenseTopic());
+            }
+
+            //TODO:
+            //it seems that the documentation at https://docs.confluent.io/platform/current/security/rbac/rbac-config-using-rest-api.html
+            // has a mistake: rights for topics are not mentioned
+            sr.start();
+
+            RestAssured.port = sr.getMappedHttpPort();
         }
-
-        //TODO:
-        //it seems that the documentation at https://docs.confluent.io/platform/current/security/rbac/rbac-config-using-rest-api.html
-        // has a mistake: rights for topics are not mentioned
-        sr.start();
-
-        RestAssured.port = sr.getMappedHttpPort();
         given().when().get("subjects").then().statusCode(401);
         given().auth().preemptive().basic(srUser, "wrong-password").when().get("subjects").then().statusCode(401);
         given().auth().preemptive().basic(srUser, "sr-user-secret").when().get("subjects").then().statusCode(200).
@@ -247,6 +254,7 @@ public class CPServerTest {
             producerNonAuth.send(new ProducerRecord<>(topicName, "hello-world")).get();
         } catch (ExecutionException e) {
             assertThat(e.getCause()).isInstanceOf(SaslAuthenticationException.class);
+            producer.close();
             return;
         }
         fail(null);
@@ -258,20 +266,25 @@ public class CPServerTest {
         final var factory = new CPTestContainerFactory();
         final var ldap = factory.createLdap(Set.of("alice", "mds", "producer", "consumer"));
 
-        final var cpServer = factory.createConfluentServer().enableRbac();
-        startAll(cpServer, ldap);
-        final var topicName = "testTopic";
+        final String topicName;
+        final org.apache.kafka.clients.producer.Producer<String, String> producer;
+        MdsRestWrapper mdsWrapper;
+        try (var cpServer = factory.createConfluentServer().enableRbac()) {
+            startAll(cpServer, ldap);
+            topicName = "testTopic";
 
-        final var producer = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("producer", "producer-secret"));
+            producer = TestClients.createProducer(cpServer.getBootstrapServers(), SecurityConfigs.plainJaasProperties("producer", "producer-secret"));
 
-        try {
-            producer.send(new ProducerRecord<>(topicName, "never going to be produced value")).get();
-            fail(null); // fail if no exception was thrown
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(TopicAuthorizationException.class);
+            try {
+                producer.send(new ProducerRecord<>(topicName, "never going to be produced value")).get();
+                fail(null); // fail if no exception was thrown
+            } catch (ExecutionException e) {
+                assertThat(e.getCause()).isInstanceOf(TopicAuthorizationException.class);
+                producer.close();
+            }
+
+            mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), "alice", "alice-secret");
         }
-
-        var mdsWrapper = new MdsRestWrapper(cpServer.getMdsPort(), "alice", "alice-secret");
         //should grant resource-owner as principal need rights to create previously non-existing topic
         mdsWrapper.grantRoleOnKafkaResource("producer", ResourceOwner, Topic, topicName);
 

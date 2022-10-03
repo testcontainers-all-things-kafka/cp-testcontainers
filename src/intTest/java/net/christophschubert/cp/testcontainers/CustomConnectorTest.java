@@ -17,27 +17,33 @@ public class CustomConnectorTest {
     public void customConnectorTest() throws IOException, InterruptedException {
         final CPTestContainerFactory factory = new CPTestContainerFactory();
 
-        final var kafka = factory.createKafka();
-        final var connect = factory.createCustomConnector(
+        final String topicName;
+        final int numMessages;
+        final TestClients.TestConsumer<String, String> consumer;
+        try (var kafka = factory.createKafka()) {
+            final net.christophschubert.cp.testcontainers.util.ConnectorConfig dataGenConfig;
+            final ConnectClient connectClient;
+            try (var connect = factory.createCustomConnector(
                 Set.of(
-                        "confluentinc/kafka-connect-s3:latest",
-                        "confluentinc/kafka-connect-datagen:0.4.0")
-                , kafka);
-        connect.start(); //implicitly starts kafka
+                    "confluentinc/kafka-connect-s3:latest",
+                    "confluentinc/kafka-connect-datagen:0.4.0")
+                , kafka)) {
+                connect.start(); //implicitly starts kafka
 
-        final var topicName = "datagen";
-        final int numMessages = 10;
-        final var dataGenConfig = new DataGenConfig("datagen-connector")
-                .withKafkaTopic(topicName)
-                .withQuickstart("inventory")
-                .withIterations(numMessages)
-                .with("value.converter.schemas.enable", "false");
+                topicName = "datagen";
+                numMessages = 10;
+                dataGenConfig = new DataGenConfig("datagen-connector")
+                    .withKafkaTopic(topicName)
+                    .withQuickstart("inventory")
+                    .withIterations(numMessages)
+                    .with("value.converter.schemas.enable", "false");
 
+                connectClient = new ConnectClient(connect.getBaseUrl());
+            }
+            connectClient.startConnector(dataGenConfig);
 
-        final ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
-        connectClient.startConnector(dataGenConfig);
-
-        final TestClients.TestConsumer<String, String> consumer = TestClients.createConsumer(kafka.getBootstrapServers());
+            consumer = TestClients.createConsumer(kafka.getBootstrapServers());
+        }
         consumer.subscribe(List.of(topicName));
 
         assertThat(consumer.consumeUntil(numMessages).size()).isEqualTo(numMessages);

@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+  id 'java'
 }
 
 apply plugin: 'maven-publish'
@@ -7,120 +7,119 @@ apply plugin: 'maven-publish'
 group = 'com.github.christophschubert'
 version = '0.2.0-SNAPSHOT'
 
-sourceCompatibility = 1.11
+sourceCompatibility = JavaVersion.VERSION_11
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 
-    maven {
-        url 'https://packages.confluent.io/maven'
-    }
+  maven {
+    url 'https://packages.confluent.io/maven'
+  }
 }
 
 sourceSets {
-    intTest {
-        compileClasspath += sourceSets.main.output
-        runtimeClasspath += sourceSets.main.output
-        resources.srcDirs += "$projectDir/src/test/resources"
-    }
+  intTest {
+    compileClasspath += sourceSets.main.output
+    runtimeClasspath += sourceSets.main.output
+    resources.srcDirs += "$projectDir/src/test/resources"
+  }
 }
 
 configurations {
-    intTestImplementation.extendsFrom testImplementation
-    intTestRuntimeOnly.extendsFrom testRuntimeOnly
-  
+  intTestImplementation.extendsFrom testImplementation
+  intTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 task integrationTest(type: Test) {
-    description = "Runs integration tests"
-    group = 'verification'
+  description = "Runs integration tests"
+  group = 'verification'
 
-    testClassesDirs = sourceSets.intTest.output.classesDirs
-    classpath = sourceSets.intTest.runtimeClasspath
-    shouldRunAfter test
+  testClassesDirs = sourceSets.intTest.output.classesDirs
+  classpath = sourceSets.intTest.runtimeClasspath
+  shouldRunAfter test
 }
 
 integrationTest.dependsOn test
 check.dependsOn integrationTest
 
 ext {
-    confluentVersion = '7.0.1'
-    kafkaVersion = '3.1.0'
-    testContainerVersion = '1.17.1'
+  confluentVersion = '7.2.2'
+  kafkaVersion = '3.2.3'
+  testContainerVersion = '1.17.3'
 }
 
 dependencies {
 
-    implementation "org.apache.kafka:connect-api:$kafkaVersion"
-    implementation "org.apache.kafka:kafka-clients:$kafkaVersion"
+  implementation "org.apache.kafka:connect-api:$kafkaVersion"
+  implementation "org.apache.kafka:kafka-clients:$kafkaVersion"
 
-    implementation "io.confluent:kafka-avro-serializer:$confluentVersion"
+  implementation "io.confluent:kafka-avro-serializer:$confluentVersion"
 
-    implementation "org.testcontainers:testcontainers:$testContainerVersion"
-    implementation "org.testcontainers:kafka:$testContainerVersion"
+  implementation "org.testcontainers:testcontainers:$testContainerVersion"
+  implementation "org.testcontainers:kafka:$testContainerVersion"
 
-    //implementation 'org.slf4j:slf4j-log4j12:1.7.36'
-    implementation 'ch.qos.logback:logback-classic:1.2.11'
+  //implementation 'org.slf4j:slf4j-log4j12:1.7.36'
+  implementation 'ch.qos.logback:logback-classic:1.2.11'
 
-    intTestImplementation "io.rest-assured:rest-assured:4.5.1"
-    testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.2"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
-    testImplementation 'org.assertj:assertj-core:3.22.0'
+  intTestImplementation "io.rest-assured:rest-assured:4.5.1"
+  testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.2"
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+  testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+  testImplementation 'org.assertj:assertj-core:3.22.0'
 
-    intTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: testContainerVersion
-    // for localstack/S3 connector integration test
-    intTestImplementation "org.testcontainers:localstack:$testContainerVersion"
-    intTestImplementation "com.amazonaws:aws-java-sdk-core:1.11.926"
-    intTestImplementation "software.amazon.awssdk:s3:2.15.53"
+  intTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: testContainerVersion
+  // for localstack/S3 connector integration test
+  intTestImplementation "org.testcontainers:localstack:$testContainerVersion"
+  intTestImplementation "com.amazonaws:aws-java-sdk-core:1.11.926"
+  intTestImplementation "software.amazon.awssdk:s3:2.15.53"
 
-    intTestCompileOnly 'org.projectlombok:lombok:1.18.24'
-    intTestAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
+  intTestCompileOnly 'org.projectlombok:lombok:1.18.24'
+  intTestAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
 
 }
 
 test {
-    useJUnitPlatform()
+  useJUnitPlatform()
 }
 
 integrationTest {
-    useJUnitPlatform()
-    testLogging {
-        outputs.upToDateWhen { false }
-        showStandardStreams = false
-        events "passed", "skipped", "failed"
-        exceptionFormat "full"
-    }
-   // forkEvery 1
+  useJUnitPlatform()
+  testLogging {
+    outputs.upToDateWhen { false }
+    showStandardStreams = false
+    events "passed", "skipped", "failed"
+    exceptionFormat "full"
+  }
+  // forkEvery 1
 }
 
 tasks.withType(JavaCompile) {
-    options.compilerArgs = [
-        '-Xlint:unchecked',
-        '-Xlint:deprecation',
-        '-Werror'
-    ]
+  options.compilerArgs = [
+      '-Xlint:unchecked',
+      '-Xlint:deprecation',
+      '-Werror'
+  ]
 }
 
 tasks.withType(Test) {
-    testLogging {
-        outputs.upToDateWhen { false }
-        showStandardStreams = false
-        events "passed", "skipped", "failed"
-        exceptionFormat "full"
-    }
+  testLogging {
+    outputs.upToDateWhen { false }
+    showStandardStreams = false
+    events "passed", "skipped", "failed"
+    exceptionFormat "full"
+  }
 }
 
 test.maxParallelForks = 4
 
 publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = project.getGroup()
-            artifactId = project.getName()
-            version = project.getVersion()
+  publications {
+    maven(MavenPublication) {
+      groupId = project.getGroup()
+      artifactId = project.getName()
+      version = project.getVersion()
 
-            from components.java
-        }
+      from components.java
     }
+  }
 }
