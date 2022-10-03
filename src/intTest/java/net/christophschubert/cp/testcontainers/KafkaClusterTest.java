@@ -22,7 +22,7 @@ public class KafkaClusterTest {
     @Test
     public void createCluster() {
         final short numBrokers = 4;
-        final CPTestContainerFactory factory = new CPTestContainerFactory();
+        final CPTestContainerFactory factory = new CPTestContainerFactory().withTag("7.2.2");
         final var kafkaCluster = factory.createKafkaCluster(numBrokers);
         kafkaCluster.startAll();
 

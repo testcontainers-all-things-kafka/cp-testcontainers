@@ -27,31 +27,34 @@ public class SchemaRegistryContainerTest {
 
         final var testContainerFactory = new CPTestContainerFactory();
 
-        final KafkaContainer kafka = testContainerFactory.createKafka();
-        final SchemaRegistryContainer schemaRegistry = testContainerFactory.createSchemaRegistry(kafka);
-        schemaRegistry.start(); //will implicitly start Kafka container
+        final String topicName;
+        final org.apache.avro.generic.GenericData.Record originalRecord;
+        final TestClients.TestConsumer<String, GenericRecord> consumer;
+        try (KafkaContainer kafka = testContainerFactory.createKafka()) {
+            final SchemaRegistryContainer schemaRegistry = testContainerFactory.createSchemaRegistry(kafka);
+            schemaRegistry.start(); //will implicitly start Kafka container
 
-        RestAssured.port = schemaRegistry.getMappedHttpPort();
+            RestAssured.port = schemaRegistry.getMappedHttpPort();
 
-        given().
-                when().
-                    get("/subjects").
-                then().
-                    statusCode(200).
-                    body("", is(Collections.emptyList()));
+            given().
+                    when().
+                get("/subjects").
+                    then().
+                statusCode(200).
+                body("", is(Collections.emptyList()));
 
+            final var schemaRegistryUrl = schemaRegistry.getBaseUrl();
+            topicName = "data.topic";
 
-        final var schemaRegistryUrl = schemaRegistry.getBaseUrl();
-        final var topicName = "data.topic";
+            final Producer<String, GenericRecord> producer = TestClients.createAvroProducer(kafka.getBootstrapServers(), schemaRegistryUrl);
+            final Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
+            originalRecord = new GenericRecordBuilder(s).set("email", "peter@a.com").set("age", 18).build();
 
-        final Producer<String, GenericRecord> producer = TestClients.createAvroProducer(kafka.getBootstrapServers(), schemaRegistryUrl);
-        final Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
-        final var originalRecord = new GenericRecordBuilder(s).set("email", "peter@a.com").set("age", 18).build();
+            producer.send(new ProducerRecord<>(topicName, "user", originalRecord));
+            producer.flush();
 
-        producer.send(new ProducerRecord<>(topicName, "user", originalRecord));
-        producer.flush();
-
-        final TestClients.TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistryUrl);
+            consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistryUrl);
+        }
         consumer.subscribe(List.of(topicName));
         final var genericRecords = consumer.consumeUntil(1);
 
