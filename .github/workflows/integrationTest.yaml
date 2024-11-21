@@ -28,7 +28,7 @@ jobs:
           distribution: 'liberica'
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
 
       - name: Execute Gradle build
         run: ./gradlew --stacktrace --info check
