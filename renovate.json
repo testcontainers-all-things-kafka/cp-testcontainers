@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["^org.testcontainers:"],
+      "groupName": "testcontainers dependencies"
+    },
+    {
+      "matchPackagePatterns": ["^org.apache.kafka:"],
+      "groupName": "kafka dependencies"
+    },
+    {
+      "matchPackagePatterns": ["^io.confluent:"],
+      "groupName": "confluent dependencies"
+    },
+    {
+      "matchPackagePatterns": ["^org.junit"],
+      "groupName": "junit dependencies"
+    }
+  ],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "schedule": ["every weekend"],
+  "gradle": {
+    "fileMatch": ["^build\\.gradle$"]
+  }
+} 
