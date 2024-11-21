@@ -32,10 +32,12 @@ public class KsqlDBContainerTest {
     public void setupKsqlDB() {
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        kafka.start();
+        final KsqlDBContainer ksqlDB;
+        try (var kafka = containerFactory.createKafka()) {
+            kafka.start();
 
-        final var ksqlDB = containerFactory.createKsqlDB(kafka);
+            ksqlDB = containerFactory.createKsqlDB(kafka);
+        }
         ksqlDB.start();
 
         RestAssured.port = ksqlDB.getFirstMappedPort();
@@ -55,10 +57,12 @@ public class KsqlDBContainerTest {
         final var tag = "0.24.0";
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        kafka.start();
+        final KsqlDBContainer ksqlDB;
+        try (var kafka = containerFactory.createKafka()) {
+            kafka.start();
 
-        final var ksqlDB = containerFactory.createKsqDB(kafka, tag);
+            ksqlDB = containerFactory.createKsqDB(kafka, tag);
+        }
         ksqlDB.start();
 
         RestAssured.port = ksqlDB.getFirstMappedPort();
@@ -78,17 +82,20 @@ public class KsqlDBContainerTest {
     public void setupKsqlDBWithSchemaRegistry() {
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        kafka.start();
+        final String serviceId;
+        final KsqlDBContainer ksqlDB;
+        try (var kafka = containerFactory.createKafka()) {
+            kafka.start();
 
-        final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
-        schemaRegistry.start();
+            final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
+            schemaRegistry.start();
 
-        final var serviceId = "test_ksqldb";
-        final var ksqlDB = containerFactory
+            serviceId = "test_ksqldb";
+            ksqlDB = containerFactory
                 .createKsqlDB(kafka)
                 .withSchemaRegistry(schemaRegistry)
                 .withServiceId(serviceId);
+        }
         ksqlDB.start();
 
         RestAssured.port = ksqlDB.getFirstMappedPort();
@@ -106,36 +113,42 @@ public class KsqlDBContainerTest {
     public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws IOException, InterruptedException, ExecutionException {
         final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
-        final var connect = containerFactory.createCustomConnector("confluentinc/kafka-connect-datagen:0.4.0", kafka);
+        final TestConsumer<String, GenericRecord> consumer;
+        try (var kafka = containerFactory.createKafka()) {
+            final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
+            final String connectorName;
+            ConnectClient connectClient;
+            final KsqlDBContainer ksqlDB;
+            try (var connect = containerFactory.createCustomConnector("confluentinc/kafka-connect-datagen:0.4.0", kafka)) {
 
-        Startables.deepStart(Stream.of(schemaRegistry, connect)).get();
+                Startables.deepStart(Stream.of(schemaRegistry, connect)).get();
 
-        final var connectorName = "datagen-users";
-        final ConnectorConfig connectorConfig = new DataGenConfig(connectorName)
-                .withIterations(10000000)
-                .withKafkaTopic("users")
-                .withQuickstart("users")
-                .withKeyConverter("org.apache.kafka.connect.storage.StringConverter")
-                .withValueConverter("org.apache.kafka.connect.json.JsonConverter")
-                .with("value.converter.schemas.enable", false);
+                connectorName = "datagen-users";
+                final ConnectorConfig connectorConfig = new DataGenConfig(connectorName)
+                        .withIterations(10000000)
+                        .withKafkaTopic("users")
+                        .withQuickstart("users")
+                        .withKeyConverter("org.apache.kafka.connect.storage.StringConverter")
+                        .withValueConverter("org.apache.kafka.connect.json.JsonConverter")
+                        .with("value.converter.schemas.enable", false);
 
-        ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
-        connectClient.startConnector(connectorConfig);
+                connectClient = new ConnectClient(connect.getBaseUrl());
+                connectClient.startConnector(connectorConfig);
 
-        final var serviceId = "test_ksqldb";
-        final var ksqlDB = containerFactory
-                .createKsqlDB(kafka)
-                .withSchemaRegistry(schemaRegistry)
-                .withConnect(connect)
-                .withQueriesFile("./src/intTest/resources/ksqlTest.sql")
-                .withServiceId(serviceId)
-                .withStartupTimeout(Duration.ofMinutes(5));
-        ksqlDB.start();
-        assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
+                final var serviceId = "test_ksqldb";
+                ksqlDB = containerFactory
+                    .createKsqlDB(kafka)
+                    .withSchemaRegistry(schemaRegistry)
+                    .withConnect(connect)
+                    .withQueriesFile("./src/intTest/resources/ksqlTest.sql")
+                    .withServiceId(serviceId)
+                    .withStartupTimeout(Duration.ofMinutes(5));
+            }
+            ksqlDB.start();
+            assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
 
-        final TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
+            consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
+        }
         consumer.subscribe(List.of("users_avro"));
 
         var messages = consumer.consumeUntil(5);
