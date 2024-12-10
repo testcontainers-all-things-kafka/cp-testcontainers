@@ -61,7 +61,7 @@ dependencies {
   implementation "org.testcontainers:testcontainers:$testContainerVersion"
   implementation "org.testcontainers:kafka:$testContainerVersion"
 
-  implementation 'ch.qos.logback:logback-classic:1.4.14'
+  implementation 'ch.qos.logback:logback-classic:1.5.12'
 
   intTestImplementation "io.rest-assured:rest-assured:5.4.0"
   intTestImplementation "org.awaitility:awaitility:4.2.0"
