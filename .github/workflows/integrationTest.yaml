@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  checks: write  # Required for publishing test results
 
 jobs:
   gradle:
@@ -32,9 +33,11 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: wrapper
+          gradle-home-cache-cleanup: true
+          cache-read-only: false
 
-      - name: Execute Gradle build
-        run: ./gradlew --stacktrace --info check
+      - name: Run integration tests
+        run: ./gradlew integrationTest --stacktrace --info
 
       - name: Build jar for publishing
         run: ./gradlew clean -xtest assemble publishToMavenLocal
@@ -43,5 +46,10 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: build/test-results/**/*.xml
+          files: |
+            build/test-results/integrationTest/**/*.xml
+            build/test-results/test/**/*.xml
           check_name: Test Results with Java ${{ matrix.java }}
+          comment_mode: off
+          report_individual_runs: true
+          action_fail: true
