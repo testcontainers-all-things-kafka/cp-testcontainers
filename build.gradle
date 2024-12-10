@@ -67,7 +67,7 @@ dependencies {
   intTestImplementation "org.awaitility:awaitility:4.2.0"
   testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
   testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-  testImplementation 'org.assertj:assertj-core:3.24.2'
+  testImplementation 'org.assertj:assertj-core:3.26.3'
 
   intTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: testContainerVersion
   // for localstack/S3 connector integration test
