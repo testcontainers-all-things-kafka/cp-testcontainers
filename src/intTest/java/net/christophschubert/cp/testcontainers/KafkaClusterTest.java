@@ -45,14 +45,14 @@ public class KafkaClusterTest {
         System.out.println("Send first message");
         assertThat(recordMetadata.offset()).isEqualTo(0);
         System.out.println("Stopping broker");
-        kafkaCluster.kafkas.get(3).stop();
+        kafkaCluster.kafkas().get(3).stop();
 
         final var recordMetadata1 = producer.send(new ProducerRecord<>("testtopic", "first")).get();
         System.out.println("Send second message " + recordMetadata1);
         assertThat(recordMetadata1.offset()).isEqualTo(1);
 
         System.out.println("Stopping broker");
-        kafkaCluster.kafkas.get(2).stop();
+        kafkaCluster.kafkas().get(2).stop();
         try {
             producer.send(new ProducerRecord<>("testtopic", "first")).get();
             fail("Should have failed with NotEnoughReplicasException");

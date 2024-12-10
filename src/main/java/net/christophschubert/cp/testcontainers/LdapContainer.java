@@ -4,6 +4,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class LdapContainer extends GenericContainer<LdapContainer> {
 
     public LdapContainer(String pathToLdif) {
         super(baseImageName.withTag(defaultTag));
-        withFileSystemBind(pathToLdif, ldifBootstrapPath);
+        withCopyFileToContainer(MountableFile.forHostPath(pathToLdif), ldifBootstrapPath);
         _configure();
     }
 

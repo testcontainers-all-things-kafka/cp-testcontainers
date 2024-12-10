@@ -14,7 +14,7 @@ public class CPTestContainerFactory {
 
     String repository = "confluentinc";
 
-    String tag = "7.0.1";
+    String tag = "7.8.0";
 
     final Network network;
 
@@ -41,43 +41,70 @@ public class CPTestContainerFactory {
     }
 
     public LdapContainer createLdap(Set<String> userNames) {
-        return new LdapContainer(userNames).withNetwork(network);
+        try (LdapContainer ldapContainer = new LdapContainer(userNames)) {
+            return ldapContainer.withNetwork(network);
+        }
     }
 
     public LdapContainer createLdap() {
-        return new LdapContainer().withNetwork(network);
+        try (LdapContainer ldapContainer = new LdapContainer()) {
+            return ldapContainer.withNetwork(network);
+        }
+    }   
+
+    private void configureContainerResources(org.testcontainers.containers.GenericContainer<?> container) {
+        container
+            .withCreateContainerCmdModifier(cmd -> Objects.requireNonNull(cmd.getHostConfig())
+                .withMemory(1024L * 1024L * 1024L) // 1GB memory limit
+                .withMemorySwap(1536L * 1024L * 1024L)) // 1.5GB swap
+            .withStartupTimeout(java.time.Duration.ofMinutes(5));
     }
 
     public KafkaContainer createKafka() {
-        return new KafkaContainer(imageName("cp-kafka")).withNetwork(network);
+        KafkaContainer container = new KafkaContainer(imageName("cp-kafka"));
+        container.withNetwork(network);
+        configureContainerResources(container);
+        return container;
     }
 
-
     public ConfluentServerContainer createConfluentServer() {
-        return (ConfluentServerContainer) new ConfluentServerContainer(repository, tag).withNetwork(network);
+        ConfluentServerContainer container = new ConfluentServerContainer(repository, tag);
+        container.withNetwork(network);
+        configureContainerResources(container);
+        return container;
     }
 
     public SchemaRegistryContainer createSchemaRegistry(KafkaContainer bootstrap) {
-        return new SchemaRegistryContainer(imageName("cp-schema-registry"), bootstrap, network);
+        SchemaRegistryContainer container = new SchemaRegistryContainer(imageName("cp-schema-registry"), bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     public KafkaConnectContainer createKafkaConnect(KafkaContainer bootstrap) {
-        return new KafkaConnectContainer(imageName("cp-kafka-connect"), bootstrap, network);
+        KafkaConnectContainer container = new KafkaConnectContainer(imageName("cp-kafka-connect"), bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     public ConfluentServerConnectContainer createConfluentServerConnect(ConfluentServerContainer bootstrap) {
-        return new ConfluentServerConnectContainer(imageName("cp-server-connect"), bootstrap, network);
+        ConfluentServerConnectContainer container = new ConfluentServerConnectContainer(imageName("cp-server-connect"), bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     public ConfluentServerConnectContainer createConfluentServerConnect(Collection<String> confluentHubComponents, ConfluentServerContainer bootstrap) {
         final var baseImageName = repository + "/cp-server-connect-base:" + tag;
         final var image = KafkaConnectContainer.customImage(confluentHubComponents, baseImageName);
-        return (ConfluentServerConnectContainer) new ConfluentServerConnectContainer(image, bootstrap, network)
-                .withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
+        ConfluentServerConnectContainer container = new ConfluentServerConnectContainer(image, bootstrap, network);
+        container.withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
+        configureContainerResources(container);
+        return container;
     }
 
     public KafkaConnectContainer createReplicator(KafkaContainer bootstrap) {
-        return new KafkaConnectContainer(imageName("cp-enterprise-replicator"), bootstrap, network);
+        KafkaConnectContainer container = new KafkaConnectContainer(imageName("cp-enterprise-replicator"), bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     public KafkaConnectContainer createCustomConnector(String hubComponent, KafkaContainer bootstrap) {
@@ -87,11 +114,16 @@ public class CPTestContainerFactory {
     public KafkaConnectContainer createCustomConnector(Set<String> hubComponents, KafkaContainer bootstrap) {
         final var baseImageName = repository + "/cp-kafka-connect-base:" + tag;
         final var image = KafkaConnectContainer.customImage(hubComponents, baseImageName);
-        return new KafkaConnectContainer(image, bootstrap, network).withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
+        KafkaConnectContainer container = new KafkaConnectContainer(image, bootstrap, network);
+        container.withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
+        configureContainerResources(container);
+        return container;
     }
 
     public RestProxyContainer createRestProxy(KafkaContainer bootstrap) {
-        return new RestProxyContainer(imageName("cp-kafka-rest"), bootstrap, network);
+        RestProxyContainer container = new RestProxyContainer(imageName("cp-kafka-rest"), bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     /**
@@ -101,7 +133,9 @@ public class CPTestContainerFactory {
      * @return a ksqlDB container
      */
     public KsqlDBContainer createKsqlDB(KafkaContainer bootstrap) {
-        return new KsqlDBContainer(imageName("cp-ksqldb-server"), bootstrap, network);
+        KsqlDBContainer container = new KsqlDBContainer(imageName("cp-ksqldb-server"), bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     /**
@@ -112,8 +146,10 @@ public class CPTestContainerFactory {
      * @return a ksqlDB container
      */
     public KsqlDBContainer createKsqDB(KafkaContainer bootstrap, String tag) {
-        final var imageName = DockerImageName.parse(String.format("%s/ksqldb-server:%s", repository, tag));
-        return new KsqlDBContainer(imageName, bootstrap, network);
+        final var imageName = DockerImageName.parse(String.format("%s/cp-ksqldb-server:%s", repository, tag));
+        KsqlDBContainer container = new KsqlDBContainer(imageName, bootstrap, network);
+        configureContainerResources(container);
+        return container;
     }
 
     DockerImageName imageName(String componentName) {
@@ -137,32 +173,25 @@ public class CPTestContainerFactory {
     }
 
 
-    public static class ClusterSpec<C extends KafkaContainer> {
-        public final List<ZooKeeperContainer> zks;
-        public final List<C> kafkas;
+  public record ClusterSpec<C extends KafkaContainer>(List<ZooKeeperContainer> zks, List<C> kafkas) {
 
-        public ClusterSpec(List<ZooKeeperContainer> zks, List<C> kafkas) {
-            this.zks = zks;
-            this.kafkas = kafkas;
-        }
-
-        public void startAll() {
-            try {
-                Startables.deepStart(kafkas).get();
-            } catch (InterruptedException | ExecutionException e) {
-                final var msg = String.format("Error starting up %s", kafkas);
-                throw new RuntimeException(msg, e.getCause());
-            }
-        }
-
-        public String getInternalBootstrap() {
-            return null;
-        }
-
-        public String getBootstrap() {
-            return kafkas.stream().map(c -> "localhost:" + c.getMappedPort(KafkaContainer.KAFKA_PORT)).collect(Collectors.joining(","));
-        }
+    public void startAll() {
+      try {
+        Startables.deepStart(kafkas).get();
+      } catch (InterruptedException | ExecutionException e) {
+        final var msg = String.format("Error starting up %s", kafkas);
+        throw new RuntimeException(msg, e.getCause());
+      }
     }
+
+    public String getInternalBootstrap() {
+      return null;
+    }
+
+    public String getBootstrap() {
+      return kafkas.stream().map(c -> "localhost:" + c.getMappedPort(KafkaContainer.KAFKA_PORT)).collect(Collectors.joining(","));
+    }
+  }
 
     /**
      * Generate a random string of given length.
@@ -222,4 +251,3 @@ public class CPTestContainerFactory {
         return new ClusterSpec<>(List.of(zk), servers);
     }
 }
-

@@ -5,6 +5,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -85,7 +86,7 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
     private final String localCertPath = "src/main/resources/certs";
 
     protected void prepareCertificates() {
-        withFileSystemBind(localCertPath, containerCertPath);
+        withCopyFileToContainer(MountableFile.forHostPath(localCertPath), containerCertPath);
     }
 
     protected String getPublicKeyPath() {
