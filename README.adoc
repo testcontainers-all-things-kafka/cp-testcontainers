@@ -1,0 +1,184 @@
+= CP Testcontainers
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: highlight.js
+:cp-version: 7.8.0
+
+image:https://github.com/testcontainers-all-things-kafka/cp-testcontainers/workflows/Run%20integration%20tests%20on%20PR/badge.svg["Build Status",link="https://github.com/testcontainers-all-things-kafka/cp-testcontainers/actions"]
+image:https://jitpack.io/v/testcontainers-all-things-kafka/cp-testcontainers.svg["JitPack",link="https://jitpack.io/#testcontainers-all-things-kafka/cp-testcontainers"]
+
+A collection of https://www.testcontainers.org/[Testcontainers] modules for Confluent Platform components, designed to simplify integration testing of Kafka-based applications.
+
+== Features
+
+* Supports all major Confluent Platform components
+* Easy setup of RBAC and MDS-enabled environments
+* Integration with Confluent Hub connectors
+* Compatible with Confluent Platform {cp-version}
+* Requires Java 17 or later
+
+== Quick Start
+
+=== Basic Usage
+
+Start Kafka and Schema Registry:
+
+[source,java]
+----
+final var factory = new CPTestContainerFactory();
+
+// Create and start Kafka and Schema Registry
+final KafkaContainer kafka = factory.createKafka();
+final SchemaRegistryContainer schemaRegistry = factory.createSchemaRegistry(kafka);
+schemaRegistry.start(); // implicitly starts kafka container
+
+// Configure client properties
+Properties properties = new Properties();
+properties.put("bootstrap.servers", kafka.getBootstrapServers());
+properties.put("schema.registry.url", schemaRegistry.getBaseUrl());
+----
+
+=== Kafka Connect with Custom Connectors
+
+Start a single-node Kafka Connect cluster with connectors from Confluent Hub:
+
+[source,java]
+----
+final var connect = factory.createCustomConnector(
+    Set.of(
+        "confluentinc/kafka-connect-s3:latest",
+        "confluentinc/kafka-connect-datagen:0.4.0"
+    ), 
+    kafka
+);
+connect.start();
+----
+
+=== RBAC-Enabled Setup
+
+Configure CP-Server and Schema Registry with RBAC:
+
+[source,java]
+----
+final var factory = new CPTestContainerFactory(network);
+final var ldap = factory.createLdap();
+
+final var confluentServer = factory.createConfluentServer()
+    .enableRbac();
+
+final var sr = factory.createSchemaRegistry(confluentServer)
+    .enableRbac();
+sr.start();
+----
+
+== Supported Components
+
+[cols="1,1,2"]
+|===
+|Component |RBAC Support |Description
+
+|Confluent Server
+|✅
+|Core Kafka component with enterprise features
+
+|Schema Registry
+|✅
+|Schema management and compatibility
+
+|Kafka Connect
+|✅ (without secret registry)
+|Data integration framework
+
+|ksqlDB
+|✅
+|Stream processing engine
+
+|REST Proxy
+|✅
+|RESTful interface to Kafka
+
+|Replicator
+|❌ (investigating OOM issues)
+|Cross-cluster data replication
+|===
+
+== Installation
+
+=== Gradle
+
+[source,groovy]
+----
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    testImplementation 'com.github.testcontainers-all-things-kafka:cp-testcontainers:Tag'
+}
+----
+
+=== Maven
+
+[source,xml]
+----
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependency>
+    <groupId>com.github.testcontainers-all-things-kafka</groupId>
+    <artifactId>cp-testcontainers</artifactId>
+    <version>Tag</version>
+    <scope>test</scope>
+</dependency>
+----
+
+== Example Use Cases
+
+=== S3 Integration Testing
+See link:src/intTest/java/net/christophschubert/cp/testcontainers/LocalStackIntTest.java[LocalStackIntTest] for an example of setting up an S3 sink connector with LocalStack.
+
+=== Multi-Version Testing
+See link:src/intTest/java/net/christophschubert/cp/testcontainers/MultiVersionTest.java[MultiVersionTest] for examples of testing against different Confluent Platform versions.
+
+== Troubleshooting
+
+=== Common Issues
+
+==== No Available IPv4 Addresses
+
+[source,text]
+----
+Status 404: {"message":"could not find an available, non-overlapping IPv4 address pool among the defaults to assign to the network"}
+----
+
+*Solution:* Clean up unused Docker networks:
+[source,bash]
+----
+docker network prune
+----
+
+==== Out of Memory Errors
+
+If you encounter OOM errors with Kafka Connect, try increasing the heap size:
+
+[source,java]
+----
+final var connect = factory.createKafkaConnect(kafka)
+    .withEnv("KAFKA_HEAP_OPTS", "-Xmx2G -Xms1G");
+----
+
+== Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a Pull Request
+
+== License
+
+See link:LICENSE[License]

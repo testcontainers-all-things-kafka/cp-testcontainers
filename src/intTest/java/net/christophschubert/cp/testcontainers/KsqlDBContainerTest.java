@@ -28,118 +28,118 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlDBContainerTest {
 
-    @Test
-    public void setupKsqlDB() {
-        final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
+  @Test
+  public void setupKsqlDB() {
+    final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        kafka.start();
+    final var kafka = containerFactory.createKafka();
+    kafka.start();
 
-        final var ksqlDB = containerFactory.createKsqlDB(kafka);
-        ksqlDB.start();
+    final var ksqlDB = containerFactory.createKsqlDB(kafka);
+    ksqlDB.start();
 
-        RestAssured.port = ksqlDB.getFirstMappedPort();
+    RestAssured.port = ksqlDB.getFirstMappedPort();
 
-        given()
-                .when()
-                .get("/healthcheck")
-                .then()
-                .log().all()
-                .statusCode(200)
-                .body("isHealthy", is(true));
-    }
-
-
-    @Test
-    public void setupKsqlDBWithFixedCustomImage() {
-        final var tag = "0.24.0";
-        final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
-
-        final var kafka = containerFactory.createKafka();
-        kafka.start();
-
-        final var ksqlDB = containerFactory.createKsqDB(kafka, tag);
-        ksqlDB.start();
-
-        RestAssured.port = ksqlDB.getFirstMappedPort();
-
-        given()
-                .when()
-                .get("/info")
-                .then()
-                .log().all()
-                .statusCode(200)
-                .body("KsqlServerInfo.serverStatus", is("RUNNING"))
-                .body("KsqlServerInfo.version", startsWith(tag));
-    }
+    given()
+        .when()
+        .get("/healthcheck")
+        .then()
+        .log().all()
+        .statusCode(200)
+        .body("isHealthy", is(true));
+  }
 
 
-    @Test
-    public void setupKsqlDBWithSchemaRegistry() {
-        final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
+  @Test
+  public void setupKsqlDBWithFixedCustomImage() {
+    final var tag = "7.8.0";
+    final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        kafka.start();
+    final var kafka = containerFactory.createKafka();
+    kafka.start();
 
-        final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
-        schemaRegistry.start();
+    final var ksqlDB = containerFactory.createKsqDB(kafka, tag);
+    ksqlDB.start();
 
-        final var serviceId = "test_ksqldb";
-        final var ksqlDB = containerFactory
-                .createKsqlDB(kafka)
-                .withSchemaRegistry(schemaRegistry)
-                .withServiceId(serviceId);
-        ksqlDB.start();
+    RestAssured.port = ksqlDB.getFirstMappedPort();
 
-        RestAssured.port = ksqlDB.getFirstMappedPort();
-
-        given()
-                .when()
-                .get("/info")
-                .then()
-                .statusCode(200)
-                .body("KsqlServerInfo.ksqlServiceId", is(serviceId));
-    }
+    given()
+        .when()
+        .get("/info")
+        .then()
+        .log().all()
+        .statusCode(200)
+        .body("KsqlServerInfo.serverStatus", is("RUNNING"))
+        .body("KsqlServerInfo.version", startsWith(tag));
+  }
 
 
-    @Test
-    public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws IOException, InterruptedException, ExecutionException {
-        final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
+  @Test
+  public void setupKsqlDBWithSchemaRegistry() {
+    final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
 
-        final var kafka = containerFactory.createKafka();
-        final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
-        final var connect = containerFactory.createCustomConnector("confluentinc/kafka-connect-datagen:0.4.0", kafka);
+    final var kafka = containerFactory.createKafka();
+    kafka.start();
 
-        Startables.deepStart(Stream.of(schemaRegistry, connect)).get();
+    final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
+    schemaRegistry.start();
 
-        final var connectorName = "datagen-users";
-        final ConnectorConfig connectorConfig = new DataGenConfig(connectorName)
-                .withIterations(10000000)
-                .withKafkaTopic("users")
-                .withQuickstart("users")
-                .withKeyConverter("org.apache.kafka.connect.storage.StringConverter")
-                .withValueConverter("org.apache.kafka.connect.json.JsonConverter")
-                .with("value.converter.schemas.enable", false);
+    final var serviceId = "test_ksqldb";
+    final var ksqlDB = containerFactory
+        .createKsqlDB(kafka)
+        .withSchemaRegistry(schemaRegistry)
+        .withServiceId(serviceId);
+    ksqlDB.start();
 
-        ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
-        connectClient.startConnector(connectorConfig);
+    RestAssured.port = ksqlDB.getFirstMappedPort();
 
-        final var serviceId = "test_ksqldb";
-        final var ksqlDB = containerFactory
-                .createKsqlDB(kafka)
-                .withSchemaRegistry(schemaRegistry)
-                .withConnect(connect)
-                .withQueriesFile("./src/intTest/resources/ksqlTest.sql")
-                .withServiceId(serviceId)
-                .withStartupTimeout(Duration.ofMinutes(5));
-        ksqlDB.start();
-        assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
+    given()
+        .when()
+        .get("/info")
+        .then()
+        .statusCode(200)
+        .body("KsqlServerInfo.ksqlServiceId", is(serviceId));
+  }
 
-        final TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
-        consumer.subscribe(List.of("users_avro"));
 
-        var messages = consumer.consumeUntil(5);
-        Assertions.assertThat(messages).hasSize(5);
-        Assertions.assertThat(messages.get(0).get("USERID")).isNotNull();
-    }
+  @Test
+  public void setupHeadlessKsqlDBWithSchemaRegistryAndConnect() throws IOException, InterruptedException, ExecutionException {
+    final var containerFactory = new CPTestContainerFactory(Network.newNetwork());
+
+    final var kafka = containerFactory.createKafka();
+    final var schemaRegistry = containerFactory.createSchemaRegistry(kafka);
+    final var connect = containerFactory.createCustomConnector("confluentinc/kafka-connect-datagen:0.4.0", kafka);
+
+    Startables.deepStart(Stream.of(schemaRegistry, connect)).get();
+
+    final var connectorName = "datagen-users";
+    final ConnectorConfig connectorConfig = new DataGenConfig(connectorName)
+        .withIterations(10000000)
+        .withKafkaTopic("users")
+        .withQuickstart("users")
+        .withKeyConverter("org.apache.kafka.connect.storage.StringConverter")
+        .withValueConverter("org.apache.kafka.connect.json.JsonConverter")
+        .with("value.converter.schemas.enable", false);
+
+    ConnectClient connectClient = new ConnectClient(connect.getBaseUrl());
+    connectClient.startConnector(connectorConfig);
+
+    final var serviceId = "test_ksqldb";
+    final var ksqlDB = containerFactory
+        .createKsqlDB(kafka)
+        .withSchemaRegistry(schemaRegistry)
+        .withConnect(connect)
+        .withQueriesFile("./src/intTest/resources/ksqlTest.sql")
+        .withServiceId(serviceId)
+        .withStartupTimeout(Duration.ofMinutes(5));
+    ksqlDB.start();
+    assertThat(connectClient.getConnectors(), is(Collections.singleton(connectorName)));
+
+    final TestConsumer<String, GenericRecord> consumer = TestClients.createAvroConsumer(kafka.getBootstrapServers(), schemaRegistry.getBaseUrl());
+    consumer.subscribe(List.of("users_avro"));
+
+    var messages = consumer.consumeUntil(5);
+    Assertions.assertThat(messages).hasSize(5);
+    Assertions.assertThat(messages.get(0).get("USERID")).isNotNull();
+  }
 }

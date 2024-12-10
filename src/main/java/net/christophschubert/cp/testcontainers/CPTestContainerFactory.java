@@ -54,7 +54,7 @@ public class CPTestContainerFactory {
 
     private void configureContainerResources(org.testcontainers.containers.GenericContainer<?> container) {
         container
-            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+            .withCreateContainerCmdModifier(cmd -> Objects.requireNonNull(cmd.getHostConfig())
                 .withMemory(1024L * 1024L * 1024L) // 1GB memory limit
                 .withMemorySwap(1536L * 1024L * 1024L)) // 1.5GB swap
             .withStartupTimeout(java.time.Duration.ofMinutes(5));
@@ -146,7 +146,7 @@ public class CPTestContainerFactory {
      * @return a ksqlDB container
      */
     public KsqlDBContainer createKsqDB(KafkaContainer bootstrap, String tag) {
-        final var imageName = DockerImageName.parse(String.format("%s/ksqldb-server:%s", repository, tag));
+        final var imageName = DockerImageName.parse(String.format("%s/cp-ksqldb-server:%s", repository, tag));
         KsqlDBContainer container = new KsqlDBContainer(imageName, bootstrap, network);
         configureContainerResources(container);
         return container;
@@ -173,32 +173,25 @@ public class CPTestContainerFactory {
     }
 
 
-    public static class ClusterSpec<C extends KafkaContainer> {
-        public final List<ZooKeeperContainer> zks;
-        public final List<C> kafkas;
+  public record ClusterSpec<C extends KafkaContainer>(List<ZooKeeperContainer> zks, List<C> kafkas) {
 
-        public ClusterSpec(List<ZooKeeperContainer> zks, List<C> kafkas) {
-            this.zks = zks;
-            this.kafkas = kafkas;
-        }
-
-        public void startAll() {
-            try {
-                Startables.deepStart(kafkas).get();
-            } catch (InterruptedException | ExecutionException e) {
-                final var msg = String.format("Error starting up %s", kafkas);
-                throw new RuntimeException(msg, e.getCause());
-            }
-        }
-
-        public String getInternalBootstrap() {
-            return null;
-        }
-
-        public String getBootstrap() {
-            return kafkas.stream().map(c -> "localhost:" + c.getMappedPort(KafkaContainer.KAFKA_PORT)).collect(Collectors.joining(","));
-        }
+    public void startAll() {
+      try {
+        Startables.deepStart(kafkas).get();
+      } catch (InterruptedException | ExecutionException e) {
+        final var msg = String.format("Error starting up %s", kafkas);
+        throw new RuntimeException(msg, e.getCause());
+      }
     }
+
+    public String getInternalBootstrap() {
+      return null;
+    }
+
+    public String getBootstrap() {
+      return kafkas.stream().map(c -> "localhost:" + c.getMappedPort(KafkaContainer.KAFKA_PORT)).collect(Collectors.joining(","));
+    }
+  }
 
     /**
      * Generate a random string of given length.
