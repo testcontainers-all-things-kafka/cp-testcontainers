@@ -36,7 +36,7 @@ public class LocalStackIntTest {
         final Network network = Network.newNetwork(); //explicitly set network so that localstack container can live on the same network
         final CPTestContainerFactory factory = new CPTestContainerFactory(network);
 
-        final LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.11.3"))
+        final LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.5.0"))
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(network)
                 .withNetworkAliases("localstack");

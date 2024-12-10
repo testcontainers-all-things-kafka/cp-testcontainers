@@ -60,7 +60,7 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         withProperty("rest.advertised.host.name", "localhost"); //TODO: change to getHost()
         withProperty("connector.client.config.override.policy", "All");
         withProperty("listeners", getHttpPortListener());
-    //    withEnv("CONNECT_LOG4J_LOGGERS", "org.eclipse.jetty=DEBUG,org.reflections=ERROR,org.apache.kafka.connect=DEBUG");
+        withEnv("KAFKA_HEAP_OPTS", "-Xmx1G -Xms512M"); // Add more heap memory
         withProperty("plugin.path", "/usr/share/java");
         withProperty("key.converter", "org.apache.kafka.connect.json.JsonConverter");
         withProperty("value.converter", "org.apache.kafka.connect.json.JsonConverter");

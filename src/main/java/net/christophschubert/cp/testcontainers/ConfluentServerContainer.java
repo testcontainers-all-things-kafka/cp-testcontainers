@@ -2,6 +2,7 @@ package net.christophschubert.cp.testcontainers;
 
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.time.Duration;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class ConfluentServerContainer extends KafkaContainer {
 
         // this should be set for all Kafka container at startup-time already
         final String brokerNetworkAlias = getHost();
-        withFileSystemBind(localCertPath, containerCertPath);  //copy certificates
+        withCopyFileToContainer(MountableFile.forHostPath(localCertPath), containerCertPath);  //copy certificates
 
         withProperty("super.users", "User:admin;User:mds;User:alice");
         // KafkaContainer configures two listeners: PLAINTEXT (port 9093), and BROKER (port 9092), BROKER is used for the
