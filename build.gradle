@@ -64,7 +64,7 @@ dependencies {
   implementation 'ch.qos.logback:logback-classic:1.4.14'
 
   intTestImplementation "io.rest-assured:rest-assured:5.4.0"
-  intTestImplementation "org.awaitility:awaitility:4.2.0"
+  intTestImplementation "org.awaitility:awaitility:4.2.2"
   testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
   testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   testImplementation 'org.assertj:assertj-core:3.24.2'
