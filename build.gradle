@@ -72,7 +72,7 @@ dependencies {
   intTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: testContainerVersion
   // for localstack/S3 connector integration test
   intTestImplementation "org.testcontainers:localstack:$testContainerVersion"
-  intTestImplementation "com.amazonaws:aws-java-sdk-core:1.12.586"
+  intTestImplementation "com.amazonaws:aws-java-sdk-core:1.12.780"
   intTestImplementation "software.amazon.awssdk:s3:2.22.9"
 
   intTestCompileOnly 'org.projectlombok:lombok:1.18.30'
