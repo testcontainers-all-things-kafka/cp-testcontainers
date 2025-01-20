@@ -73,7 +73,7 @@ dependencies {
   // for localstack/S3 connector integration test
   intTestImplementation "org.testcontainers:localstack:$testContainerVersion"
   intTestImplementation "com.amazonaws:aws-java-sdk-core:1.12.586"
-  intTestImplementation "software.amazon.awssdk:s3:2.22.9"
+  intTestImplementation "software.amazon.awssdk:s3:2.30.2"
 
   intTestCompileOnly 'org.projectlombok:lombok:1.18.30'
   intTestAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
