@@ -75,8 +75,8 @@ dependencies {
   intTestImplementation "com.amazonaws:aws-java-sdk-core:1.12.586"
   intTestImplementation "software.amazon.awssdk:s3:2.22.9"
 
-  intTestCompileOnly 'org.projectlombok:lombok:1.18.30'
-  intTestAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+  intTestCompileOnly 'org.projectlombok:lombok:1.18.36'
+  intTestAnnotationProcessor 'org.projectlombok:lombok:1.18.36'
 
 }
 
