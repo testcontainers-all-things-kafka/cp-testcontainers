@@ -46,7 +46,7 @@ integrationTest.dependsOn test
 check.dependsOn integrationTest
 
 ext {
-  confluentVersion = '7.5.2'
+  confluentVersion = '7.8.1'
   kafkaVersion = '3.5.1'
   testContainerVersion = '1.19.3'
 }
